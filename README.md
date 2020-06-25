@@ -42,6 +42,22 @@ P3S control
 
 
 ## Files
-/work/projects/esprit/Dropseq_projects/LIH2/new/human/counts
+/work/projects/esprit/Dropseq_projects/GBMST/
 
-/work/projects/esprit/Dropseq_projects/LIH2/new/mouse/counts
+/work/projects/esprit/Dropseq_projects/LIH2/new/
+
+/work/projects/esprit/Dropseq_projects/LIH2/new/
+
+
+## Preprocess
+(Scripts/1.preprocess.R)
+Each dataset filtered seperatly.
+
+## Human/Mouse Cells
+(Scripts/2.hm_sep.R)
+
+## Map Datasets
+(Scripts/3.mapping.R)
+
+
+
