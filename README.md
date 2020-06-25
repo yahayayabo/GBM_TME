@@ -3,10 +3,15 @@ Analysis of GBM tumor microenvironment
 For this analysis we will use the following TME datasets
 
 Old data - processed by Suresh in 2016
+
 Mouse brain = Control
+
 P3
+
 P8
+
 P13
+
 *we already have new data from P13 and P3 we may only use P8 and Mouse brain (control) from the old data
 
 New data processed by Kamil in 2020
