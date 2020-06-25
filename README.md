@@ -16,9 +16,11 @@ P13
 
 # New data processed by Kamil in 2020
 
-file name           Real name
+for this new data, we need to remove human tumor cells and save those cells in a separate DGEM
 
-P13S_S1_DGE         = P13S
+file name      /     Real name
+
+P13S_S1_DGE         = P13S  
 
 P16S_S1_DGE         = T16S
 
