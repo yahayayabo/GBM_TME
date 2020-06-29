@@ -51,7 +51,6 @@ P3S control
 ## Preprocess
 (Scripts/1.preprocess.R)
 Each dataset filtered seperatly.
-![Test Image 1](Figures/Cluster_4_Validation_Page_4.jpg)
 
 ## Map Datasets
 (Scripts/3.mapping.R)
