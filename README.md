@@ -46,16 +46,22 @@ P3S control
 
 /work/projects/esprit/Dropseq_projects/LIH2/new/
 
-/work/projects/esprit/Dropseq_projects/LIH2/new/
 
 
 ## Preprocess
 (Scripts/1.preprocess.R)
 Each dataset filtered seperatly.
+![Test Image 1](Figures/Cluster_4_Validation_Page_4.jpg)
 
 ## Map Datasets
 (Scripts/3.mapping.R)
 
+### No batch Correction
+
+![Test Image 1](Figures/Cells.jpg)
+
+### SCT mapping 
+![Test Image 1](Figures/Cells2.jpg)
 
 ## Human/Mouse Cells
 (Scripts/2.hm_sep.R)
