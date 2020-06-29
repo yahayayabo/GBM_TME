@@ -5,14 +5,23 @@ date: "26/6/2020"
 ---
 
 
+WORKDIR<-"/home/users/dkyriakis/PhD/Projects/Yahaya/"
 
-human_dir <- paste0(WORKDIR,"/data/human/stroma/")
-mouse_dir <- paste0(WORKDIR,"/data/mouse/stroma/")
+human_dir <- paste0(WORKDIR,"/human/")
+mouse_dir <- paste0(WORKDIR,"/mouse/")
+
+list.files(human_dir,full.names = TRUE)[c(4,6,8,1,2)]
+
 
 iter=1
 human_file <- NULL
-for (file in list.files(human_dir,full.names = TRUE)){
+for (file in list.files(human_dir,full.names = TRUE)[c(4,6,8,1,2)]){
+  print(iter)
+  print(file)
   temp_file1 <- read.table(file,header = TRUE)
+  if(dim(temp_file1)[2]==4){
+    temp_file1[2]<-NULL
+  }
   temp_file1[,1] <- paste0(temp_file1[,1],"_",iter) 
   print(dim(temp_file1))
   human_file <- rbind(human_file,temp_file1)
@@ -21,8 +30,11 @@ for (file in list.files(human_dir,full.names = TRUE)){
 
 iter=1
 mouse_file <- NULL
-for (file in list.files(mouse_dir,full.names = TRUE)){
+for (file in list.files(mouse_dir,full.names = TRUE)[c(4,6,8,1,2)]){
   temp_file1 <- read.table(file,header = TRUE)
+  if(dim(temp_file1)[2]==4){
+    temp_file1[2]<-NULL
+  }
   temp_file1[,1] <- paste0(temp_file1[,1],"_",iter) 
   print(dim(temp_file1))
   mouse_file <- rbind(mouse_file,temp_file1)
@@ -43,12 +55,12 @@ mouse_df[mouse_df$CELL_BARCODE=="AAAACGGTTGTT_1",]
 merged_df <- merge(mouse_df,human_df,by="CELL_BARCODE", all = TRUE)
 merged_df[is.na(merged_df)] <- 0
 merged_df_ord <- merged_df[match(colnames(backup_obj),merged_df$CELL_BARCODE),]
+merged_df_ord$Cluster <- backup_obj$Cluster
 colnames(merged_df_ord) <- c("CELL_BARCODE",
                              "Mouse_NUM_GENES",
                              "Mouse_NUM_TRANSCR",
                              "Human_NUM_GENES", 
                              "Human_NUM_TRANSCR", "Cluster")
-merged_df_ord$Cluster <- backup_obj$Cluster
 merged_df_ord$Diff_tr <- merged_df_ord$Mouse_NUM_TRANSCR-merged_df_ord$Human_NUM_TRANSCR
 merged_df_ord$Diff_gexp <- merged_df_ord$Mouse_NUM_GENES-merged_df_ord$Human_NUM_GENES
 
