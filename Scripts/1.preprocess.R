@@ -114,8 +114,8 @@ sil_scor <- optimal_output$sil_scor
 test <- FindClusters(test, resolution = seq(0,1.1,0.1))
 
 
-# clustree <-clustree(test,prefix="integrated_snn_res.")
-clustree <-clustree(test,prefix="SCT_snn_res.")
+clustree <-clustree(test,prefix="integrated_snn_res.")
+# clustree <-clustree(test,prefix="SCT_snn_res.")
 
 pdf("Clustering.pdf")
 plot(clustree)

@@ -60,12 +60,13 @@ Each dataset filtered seperatly.
 ![Test Image 1](Figures/Cells.jpg)
 
 ### SCT mapping 
-![Test Image 1](Figures/Cells2.jpg)
+Here we see that using batch correction we have clear seperation of the Human and mouse cells.
+![Test Image 1](Figures/Sep_3.jpg)
 
 ## Human/Mouse Cells
 (Scripts/2.hm_sep.R)
+![Test Image 1](Figures/Sep_2.jpg)
 
-![Test Image 1](Figures/Cluster_4_Validation_Page_4.jpg)
 
 
 

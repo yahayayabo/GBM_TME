@@ -4,7 +4,8 @@ author: "Dimitrios Kyriakis"
 date: "26/6/2020"
 ---
 
-
+dir.create("5.Seperation")
+setwd("5.Seperation")
 WORKDIR<-"/home/users/dkyriakis/PhD/Projects/Yahaya/"
 
 human_dir <- paste0(WORKDIR,"/human/")
@@ -44,7 +45,7 @@ for (file in list.files(mouse_dir,full.names = TRUE)[c(4,6,8,1,2)]){
 
 corner(human_file)
 corner(mouse_file)
-
+backup_obj<-test
 human_df <- human_file[human_file[,1] %in% colnames(backup_obj),]
 mouse_df <- mouse_file[mouse_file[,1] %in% colnames(backup_obj),]
 dim(mouse_df)
@@ -64,29 +65,51 @@ colnames(merged_df_ord) <- c("CELL_BARCODE",
 merged_df_ord$Diff_tr <- merged_df_ord$Mouse_NUM_TRANSCR-merged_df_ord$Human_NUM_TRANSCR
 merged_df_ord$Diff_gexp <- merged_df_ord$Mouse_NUM_GENES-merged_df_ord$Human_NUM_GENES
 
-pdf("Cluster_4_Validation.pdf")
-ggplot(merged_df_ord,aes(x=Mouse_NUM_GENES,y=Human_NUM_GENES,fill=Cluster,col=Cluster))+
+pdf("Seperation.pdf")
+g1 <- ggplot(merged_df_ord,aes(x=Mouse_NUM_GENES,y=Human_NUM_GENES,fill=Cluster,col=Cluster))+
   geom_point()+theme_cowplot()+geom_abline(show.legend = "Y=X")+
   scale_color_manual(values = color_list[["Cluster"]], name = "Cluster",na.value = "gray")
 
-ggplot(merged_df_ord,aes(x=Mouse_NUM_TRANSCR,y=Human_NUM_TRANSCR,fill=Cluster,col=Cluster))+
+g2 <- ggplot(merged_df_ord,aes(x=Mouse_NUM_TRANSCR,y=Human_NUM_TRANSCR,fill=Cluster,col=Cluster))+
   geom_point()+theme_cowplot()+geom_abline(show.legend = "Y=X")+
   scale_color_manual(values = color_list[["Cluster"]], name = "Cluster",na.value = "gray")
 
-ggplot(merged_df_ord,aes(x=Cluster,y=Diff_tr))+
+g3 <- ggplot(merged_df_ord,aes(x=Cluster,y=Diff_tr))+
   geom_violin()+geom_jitter(aes(fill=Cluster,col=Cluster))+
   scale_color_manual(values = color_list[["Cluster"]], name = "Cluster",na.value = "gray")+
   geom_abline(x=0)+theme_cowplot()
 
-ggplot(merged_df_ord,aes(x=Cluster,y=Diff_gexp))+
+g4 <- ggplot(merged_df_ord,aes(x=Cluster,y=Diff_gexp))+
   geom_violin()+geom_jitter(aes(fill=Cluster,col=Cluster))+
   scale_color_manual(values = color_list[["Cluster"]], name = "Cluster",na.value = "gray")+
   geom_abline(x=0)+theme_cowplot()
-
+g1
+g2
+g3
+g4
+DimPlot(test,group.by=c("condition"))
+DimPlot(test,group.by=c("Cluster"))
 dev.off()
 
+pdf("Sep_2.pdf",width=15,height=10)
+ggarrange(g1, g2, g3,g4,
+                    labels = c("A", "B", "C","D"),
+                    ncol = 2, nrow = 2)
+dev.off()
 
+pdf("Sep_3.pdf",width=15)
+g1 <- DimPlot(test,group.by=c("condition"),cols=color_cond)
+g2<- DimPlot(test,group.by=c("Cluster"),cols=color_clust)
+g3 <- ggplot(merged_df_ord,aes(x=Cluster,y=Diff_gexp))+
+  geom_violin()+geom_jitter(aes(fill=Cluster,col=Cluster))+
+  scale_color_manual(values = color_list[["Cluster"]], name = "Cluster",na.value = "gray")+
+  geom_abline(x=0)+theme_cowplot()
+ggarrange(g1, g2, g3,
+                    labels = c("A", "B", "C"),
+                    ncol = 3, nrow = 1)
+dev.off()
 
+pdf("Sep2.pdf")
 hist(merged_df_ord$Mouse_NUM_TRANSCR-merged_df_ord$Human_NUM_TRANSCR,breaks = 500)
 
 
@@ -98,3 +121,4 @@ cells_rmv <- colnames(Combined)[colSums(Combined@assays$RNA@counts==0) > 15900]
 DimPlot(Combined)
 subset_com <- subset(Combined,cells=cells_rmv)
 DimPlot(subset_com)
+dev.off()
