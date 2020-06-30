@@ -53,7 +53,7 @@ P3S control
 Each dataset filtered seperatly.
 An example of the filtering of P13S
 
-![Test Image 1](Figures/1.QC P13S .jpg)
+![Test Image 1](Figures/1.QC_P13S.jpg)
 
 Extra filtering based on the ratio nCounts/nFeatures
 ![Test Image 1](Figures/P13S_Joint_Page_2.jpg)
