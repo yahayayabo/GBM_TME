@@ -67,7 +67,7 @@ Extra filtering based on the ratio nCounts/nFeatures
 
 ### Map Datasets using Liger
 
-![Test Image 1](Figures/Liger_Cells.jpg)
+![Test Image 1](Figures/Liger_Cells.png)
 ![Test Image 1](Figures/Dim_wrap.jpg)
 ## Human/Mouse Cells
 (Scripts/2.hm_sep.R)

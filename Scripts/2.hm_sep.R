@@ -181,8 +181,11 @@ markers$gene <- rownames(markers)
 
 pdf("DoHeatmap.pdf",width=12,height=10)
 top10 <- markers %>% group_by(cluster) %>% top_n(n = 10, wt = abs(avg_logFC))
-DoHeatmap(object = Seurat,features = top10$gene,raster = F)+ 
+DoHeatmap(object = Seurat,features = unique(top10$gene),raster = F)+ 
     theme(text = element_text(size = 6))
+top3 <- markers %>% group_by(cluster) %>% top_n(n = 3, wt = abs(avg_logFC))
+DotPlot(Seurat, features = unique(top3$gene),  dot.scale = 8) + RotatedAxis()+ 
+    theme(text = element_text(size = 9))
 dev.off()
 write.table(markers[markers$p_val_adj<0.05 & abs(markers$avg_logFC)>0.1,],"sig_avatar.txt")
 
