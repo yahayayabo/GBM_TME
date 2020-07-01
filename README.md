@@ -66,12 +66,10 @@ Extra filtering based on the ratio nCounts/nFeatures
 ![Test Image 1](Figures/Cells.jpg)
 
 ### Map Datasets using Liger
+(Scripts/2.hm_sep.R)
 
 ![Test Image 1](Figures/Liger_Cells.png)
 ![Test Image 1](Figures/Dim_wrap.jpg)
-## Human/Mouse Cells
-(Scripts/2.hm_sep.R)
-![Test Image 1](Figures/Seperation_H_M.png)
 
 
 We removed the Clusters (5,15,16,17,18,19) that seems to be human cells.
