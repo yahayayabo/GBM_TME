@@ -109,6 +109,12 @@ ggarrange(g1, g2, g3,
                     ncol = 3, nrow = 1)
 dev.off()
 
+
+
+pdf("Dim_wrap.pdf",width=15,height=15)
+DimPlot(test,group.by=c("condition"),cols=color_cond,split.by="condition",ncol=3)
+dev.off()
+
 pdf("Sep2.pdf")
 hist(merged_df_ord$Mouse_NUM_TRANSCR-merged_df_ord$Human_NUM_TRANSCR,breaks = 500)
 
@@ -122,3 +128,62 @@ DimPlot(Combined)
 subset_com <- subset(Combined,cells=cells_rmv)
 DimPlot(subset_com)
 dev.off()
+
+
+
+
+
+
+mouse_data <- subset(test,subset=Cluster%in%c(1,2,3,4,6,7,8,9,10,11,12,13,14))
+human_data <- subset(test,subset=Cluster%in%c(5,15,16,17,18,19))
+
+
+
+dir.create("6.Projection_sep")
+setwd("6.Projection_sep")
+DefaultAssay(mouse_data) <-"RNA"
+mouse_data2 <-liger_projection(mouse_data,split.by="condition",k=20,lamda=5,n_neighbors=10)
+mouse_data2$Cluster <- mouse_data2$Liger_Clusters
+
+pdf("Markers.pdf")
+FeaturePlot(mouse_data2, c("PLP1","P2RY12","GJA1","OLIG1","GAD2","IGF2","CCDC153"),
+    order=TRUE,cols = c("lightgrey","#FDBB84","#EF6548","#D7301F","#B30000","#7F0000"),reduction="liger_umap")
+dev.off()
+
+pdf("Cells.pdf")
+DimPlot(mouse_data2,group.by = "condition",cols=color_cond,reduction="liger_umap")
+DimPlot(mouse_data2,group.by = "Cluster",cols=color_clust,reduction="liger_umap")
+DimPlot(mouse_data2,group.by = "Phase",reduction="liger_umap")
+dev.off()
+
+
+dat <- data.frame(table(mouse_data2$Cluster,mouse_data2$Condition))
+names(dat) <- c("Cluster","Condition","Count")
+
+pdf("Barplot.pdf",width=12)
+ggplot(data=dat, aes(x=Cluster, y=Count, fill=Condition)) + geom_bar(stat="identity")+theme_cowplot()+ scale_fill_manual(values=color_cond)
+dev.off()
+
+setwd("../")
+
+
+
+
+
+Seurat <- mouse_data2
+Idents(Seurat)<-Seurat$Cluster
+DefaultAssay(Seurat) <- "RNA"
+Seurat <-NormalizeData(Seurat)
+Seurat <-ScaleData(Seurat)
+markers <- FindAllMarkers(Seurat,test.use="MAST",only.pos =T,latent.vars="nCount_RNA",logfc.threshold = 0.1)
+
+markers$gene <- rownames(markers)
+
+pdf("DoHeatmap.pdf",width=12,height=10)
+top10 <- markers %>% group_by(cluster) %>% top_n(n = 10, wt = abs(avg_logFC))
+DoHeatmap(object = Seurat,features = top10$gene,raster = F)+ 
+    theme(text = element_text(size = 6))
+dev.off()
+write.table(markers[markers$p_val_adj<0.05 & abs(markers$avg_logFC)>0.1,],"sig_avatar.txt")
+
+

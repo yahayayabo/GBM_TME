@@ -65,14 +65,40 @@ Extra filtering based on the ratio nCounts/nFeatures
 
 ![Test Image 1](Figures/Cells.jpg)
 
-### SCT mapping 
-Here we see that using batch correction we have clear seperation of the Human and mouse cells.
-![Test Image 1](Figures/Sep_3.jpg)
+### Map Datasets using Liger
 
+![Test Image 1](Figures/Liger_Cells.jpg)
+![Test Image 1](Figures/Dim_wrap.jpg)
 ## Human/Mouse Cells
 (Scripts/2.hm_sep.R)
-![Test Image 1](Figures/Sep_2.jpg)
+![Test Image 1](Figures/Seperation_H_M.png)
 
 
+We removed the Clusters (5,15,16,17,18,19) that seems to be human cells.
+
+
+### Map Datasets using Liger
+We used Again Liger to re align the mouse cells only this time.
+![Test Image 1](Figures/Liger_After_H_M_Page_1.jpg)
+![Test Image 1](Figures/Liger_After_H_M_Page_2.jpg)
+![Test Image 1](Figures/Liger_Barplot_After_Sep.png)
+
+### Differentially expression between clusters
+```
+Idents(Seurat)<-Seurat$Cluster
+DefaultAssay(Seurat) <- "RNA"
+Seurat <-NormalizeData(Seurat)
+Seurat <-ScaleData(Seurat)
+markers <- FindAllMarkers(Seurat,test.use="MAST",only.pos =T,latent.vars="nCount_RNA",logfc.threshold = 0.1)
+
+top10 <- markers %>% group_by(cluster) %>% top_n(n = 10, wt = abs(avg_logFC))
+
+pdf("DoHeatmap.pdf",width=12,height=10)
+DoHeatmap(object = Seurat,features = top10$gene,raster = F)+ 
+    theme(text = element_text(size = 6))
+dev.off()
+```
+
+![Test Image 1](Figures/DoHeatmap.jpg)
 
 
