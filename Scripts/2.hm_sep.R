@@ -11,12 +11,12 @@ WORKDIR<-"/home/users/dkyriakis/PhD/Projects/Yahaya/"
 human_dir <- paste0(WORKDIR,"/human/")
 mouse_dir <- paste0(WORKDIR,"/mouse/")
 
-list.files(human_dir,full.names = TRUE)[c(4,6,8,1,2)]
+list.files(human_dir,full.names = TRUE)
 
 
 iter=1
 human_file <- NULL
-for (file in list.files(human_dir,full.names = TRUE)[c(4,6,8,1,2)]){
+for (file in list.files(human_dir,full.names = TRUE)){
   print(iter)
   print(file)
   temp_file1 <- read.table(file,header = TRUE)
@@ -31,7 +31,7 @@ for (file in list.files(human_dir,full.names = TRUE)[c(4,6,8,1,2)]){
 
 iter=1
 mouse_file <- NULL
-for (file in list.files(mouse_dir,full.names = TRUE)[c(4,6,8,1,2)]){
+for (file in list.files(mouse_dir,full.names = TRUE)){
   temp_file1 <- read.table(file,header = TRUE)
   if(dim(temp_file1)[2]==4){
     temp_file1[2]<-NULL
