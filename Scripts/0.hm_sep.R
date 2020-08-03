@@ -14,6 +14,7 @@ mouse_dir <- paste0(WORKDIR,"/mouse/")
 list.files(human_dir,full.names = TRUE)
 
 
+order_files<-c("4","5","6","7","8","9","1","2","3")
 iter=1
 human_file <- NULL
 for (file in list.files(human_dir,full.names = TRUE)){
@@ -23,7 +24,7 @@ for (file in list.files(human_dir,full.names = TRUE)){
   if(dim(temp_file1)[2]==4){
     temp_file1[2]<-NULL
   }
-  temp_file1[,1] <- paste0(temp_file1[,1],"_",iter) 
+  temp_file1[,1] <- paste0(temp_file1[,1],"_",order_files[iter]) 
   print(dim(temp_file1))
   human_file <- rbind(human_file,temp_file1)
   iter=iter+1
@@ -36,7 +37,7 @@ for (file in list.files(mouse_dir,full.names = TRUE)){
   if(dim(temp_file1)[2]==4){
     temp_file1[2]<-NULL
   }
-  temp_file1[,1] <- paste0(temp_file1[,1],"_",iter) 
+  temp_file1[,1] <- paste0(temp_file1[,1],"_",order_files[iter]) 
   print(dim(temp_file1))
   mouse_file <- rbind(mouse_file,temp_file1)
   iter=iter+1
@@ -50,6 +51,7 @@ human_df <- human_file[human_file[,1] %in% colnames(backup_obj),]
 mouse_df <- mouse_file[mouse_file[,1] %in% colnames(backup_obj),]
 dim(mouse_df)
 dim(human_df)
+corner(human_df)
 
 human_df[human_df$CELL_BARCODE=="AAAACGGTTGTT_1",]        
 mouse_df[mouse_df$CELL_BARCODE=="AAAACGGTTGTT_1",]        
@@ -64,6 +66,7 @@ colnames(merged_df_ord) <- c("CELL_BARCODE",
                              "Human_NUM_TRANSCR", "Cluster")
 merged_df_ord$Diff_tr <- merged_df_ord$Mouse_NUM_TRANSCR-merged_df_ord$Human_NUM_TRANSCR
 merged_df_ord$Diff_gexp <- merged_df_ord$Mouse_NUM_GENES-merged_df_ord$Human_NUM_GENES
+corner(merged_df_ord)
 
 pdf("Seperation.pdf")
 g1 <- ggplot(merged_df_ord,aes(x=Mouse_NUM_GENES,y=Human_NUM_GENES,fill=Cluster,col=Cluster))+
@@ -134,8 +137,8 @@ dev.off()
 
 
 
-mouse_data <- subset(test,subset=Cluster%in%c(1,2,3,4,6,7,8,9,10,11,12,13,14))
-human_data <- subset(test,subset=Cluster%in%c(5,15,16,17,18,19))
+mouse_data <- subset(test,subset=Cluster%in%c(1,2,3,4,5,6,7,9,10,13,14,15,16,17,18,20))
+human_data <- subset(test,subset=Cluster%in%c(8,11,12,19))
 
 
 
@@ -170,6 +173,9 @@ setwd("../")
 
 
 
+
+dir.create("7.Mouse")
+setwd("7.Mouse")
 Seurat <- mouse_data2
 Idents(Seurat)<-Seurat$Cluster
 DefaultAssay(Seurat) <- "RNA"

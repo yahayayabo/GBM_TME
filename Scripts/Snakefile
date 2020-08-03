@@ -1,0 +1,66 @@
+
+rule all:
+    input:
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/1.ReadFiles/Object_list.rds",
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/2.Preprocess/Fl_Object_list.rds",
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/3.Projection/SCT_Merged.rds",
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/4.Clustering/SCT_Merged_Cl.rds",
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/5.DF/Astrocytes.rds"
+
+
+# ==================================================================== ReadFiles ======================================================================
+rule ReadFiles:
+    input:
+        f1="/work/projects/esprit/epi-scRNA/Control/outs/filtered_feature_bc_matrix/",
+        f2="/work/projects/esprit/epi-scRNA/Epilepsy/outs/filtered_feature_bc_matrix/"
+    output:
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/1.ReadFiles/Object_list.rds"
+    shell:
+        "Rscript 1.ReadFiles.R"
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+# ==================================================================== Preprocess ======================================================================
+rule Preprocess:
+    input:
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/1.ReadFiles/Object_list.rds"
+    output:
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/2.Preprocess/Fl_Object_list.rds"
+    shell:
+        "Rscript 2.preproces.R"
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+# ==================================================================== Projection ======================================================================
+rule Projection:
+    input:
+        f1="/home/users/dkyriakis/PhD/Projects/epi-scRNA/2.Preprocess/Fl_Object_list.rds"
+    output:
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/3.Projection/SCT_Merged.rds"
+    shell:
+        "Rscript 3.Projection.R"
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+# ==================================================================== Clustering ======================================================================
+rule Clustering:
+    input:
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/3.Projection/SCT_Merged.rds"
+    output:
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/4.Clustering/SCT_Merged_Cl.rds"
+    shell:
+        "Rscript 4.Clustering.R"
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+# ==================================================================== DF Analysis ======================================================================
+rule DF:
+    input:
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/4.Clustering/SCT_Merged_Cl.rds"
+    output:
+        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/5.DF/Astrocytes.rds"
+    shell:
+        "Rscript 5.DF.R"
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
+

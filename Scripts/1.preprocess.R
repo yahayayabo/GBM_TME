@@ -1,8 +1,8 @@
----
-title: "GBM_TME"
-author: "Dimitrios Kyriakis"
-date: "26/6/2020"
----
+# ---
+# title: "GBM_TME"
+# author: "Dimitrios Kyriakis"
+# date: "26/6/2020"
+# ---
 
 # ============================== Libraries ========================================
 library(HDF5Array)
@@ -128,6 +128,8 @@ dev.off()
 setwd("../")
 # ----------------------------------------------------------------------------------
 
+save.image("Liger.RData")
+
 # ================================= Clustering ======================================
 
 dir.create("4.Clustering")
@@ -136,14 +138,14 @@ source('/home/users/dkyriakis/PhD/Projects/Yahaya/Script_Library/Clustering.R')
 library("cluster")
 library("clustree")
 # =================== Optimal Clusters ======================================
-optimal_output<- optimal_clusters(test,k.max=10,save=TRUE,resolution=FALSE)
-test <- optimal_output$object
-opt_num <- optimal_output$opt_num
-sil_scor <- optimal_output$sil_scor
-test <- FindClusters(test, resolution = seq(0,1.1,0.1))
+# optimal_output<- optimal_clusters(test,k.max=10,save=TRUE,resolution=FALSE)
+# test <- optimal_output$object
+# opt_num <- optimal_output$opt_num
+# sil_scor <- optimal_output$sil_scor
+# test <- FindClusters(test, resolution = seq(0,1.1,0.1))
 
 
-clustree <-clustree(test,prefix="integrated_snn_res.")
+# clustree <-clustree(test,prefix="integrated_snn_res.")
 # clustree <-clustree(test,prefix="SCT_snn_res.")
 test$Cluster <- test$Liger_Clusters
 pdf("Clustering.pdf")
@@ -155,5 +157,5 @@ dev.off()
 graphics.off()
 setwd("../")
 
-
+saveRDS(test,"Seurat_obj.rds")
 save.image("All_data.RData")
