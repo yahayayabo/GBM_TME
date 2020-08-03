@@ -8,6 +8,7 @@ rule all:
         "/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds"
 
 
+
 # ==================================================================== ReadFiles ======================================================================
 rule ReadFiles:
     input:
@@ -16,7 +17,7 @@ rule ReadFiles:
     output:
         "/home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds"
     shell:
-        "Rscript 1.QC.R"
+        "Rscript 1.ReadFiles.R"
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
