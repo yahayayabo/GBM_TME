@@ -1,9 +1,9 @@
 # ---
-# title: "Epi-Analysis"
+# title: "GBM_TME"
 # author: "Dimitrios Kyriakis"
-# date: "09/07/2020"
+# date: "26/6/2020"
 # ---
-options(future.globals.maxSize= 20122317824)
+
 # ============================== Libraries ========================================
 library(HDF5Array)
 library(BiocParallel)
@@ -16,15 +16,13 @@ library(crayon)
 library(NMF)
 library(cowplot)
 library(ggpubr)
-library(org.Hs.eg.db)
-library("cluster")
-library("clustree")
-
 # ----------------------------------------------------------------------------------
 
 
 # ================================ Color Pelet =====================================
-color_cond <- c( "magenta4", "#007A87",brewer.pal(6,"Dark2")[-1],"#FF5A5F","black")
+color_cond <- c( "magenta4", "#007A87",brewer.pal(6,"Dark2")[-1],"#FF5A5F","black",
+    "#FFB400", "#007A87", "#8CE071", "#7B0051",
+                 "#00D1C1")
 color_clust <- c("#FF5A5F", "#FFB400", "#007A87", "#8CE071", "#7B0051",
                  "#00D1C1", "#FFAA91", "#B4A76C", "#9CA299", "#565A5C", "#00A04B", "#E54C20",brewer.pal(12,"Paired")[-11],"black","gray","magenta4","seagreen4",brewer.pal(9,"Set1")[-6],brewer.pal(8,"Dark2"))
 color_cells <- c(brewer.pal(9,"Set1")[-6],"goldenrod4","darkblue","seagreen4")
@@ -33,130 +31,62 @@ color_list <- list(condition=color_cond,Cluster=color_clust,Cell_Type=color_cell
 
 
 # =============================== Load Functions ====================================
-script_libs <- list.files("/home/users/dkyriakis/PhD/Projects/epi-scRNA/Script_Library",full.names = TRUE)
+script_libs <- list.files("/home/users/dkyriakis/PhD/Projects/Yahaya/Script_Library",full.names = TRUE)
 lapply(script_libs,source)
 # ----------------------------------------------------------------------------------
 
 # ============================= PATH OF FILES =======================================
-path <- "/mnt/irisgpfs/users/dkyriakis/PhD/Projects/epi-scRNA"
+# Produced by Kamil (GBMST)
+path = "/work/projects/esprit/Dropseq_projects/GBMST/mouse/counts"
+filenames_old <-list.files(path,full.names = TRUE)
+filenames_DGE_old <- filenames_old[grep("Summary|readcounts",filenames_old,invert=TRUE)][c(1,3,5)]
+cond_names_old <- c("P13S","T16S","T192S")
+
+# Produced by Kamil New (LIH2)
+path_new = "/work/projects/esprit/Dropseq_projects/LIH2/new/mouse/counts"
+filenames_new <-list.files(path_new,full.names = TRUE)
+filenames_DGE_new <- filenames_new[grep("Summary",filenames_new,invert=TRUE)][c(1,2)]
+cond_names_new <- c("T470S","T101S")
+
+filenames <- c(filenames_DGE_old,filenames_DGE_new)
+condition_names <- c(cond_names_old,cond_names_new)
 
 
-filenames<- c("/work/projects/esprit/epi-scRNA/Control/outs/filtered_feature_bc_matrix/",
-"/work/projects/esprit/epi-scRNA/Epilepsy/outs/filtered_feature_bc_matrix/")
-condition_names <- c("control","epilepsy")
+# New data 15/07/2020 from Kamil (LIHII)
+path_new<-"/work/projects/esprit/Dropseq_projects/LIHII/mouse/counts"
+filenames_new <-list.files(path_new,full.names = TRUE)
+filenames_DGE_new <- filenames_new[grep("Summary|readcounts",filenames_new,invert=TRUE)]
+cond_names_new <- c("T347S","T233S","P3TMZ","P3Con")
+
+filenames <- c(filenames,filenames_DGE_new)
+condition_names <- c(condition_names,cond_names_new)
+
+
+old_suresh <- list.files("/home/users/dkyriakis/PhD/Projects/Yahaya/DATA_old",full.names=T)
+filenames <- c(filenames,old_suresh)
+condition_names <- c(condition_names,c("Control","p13_old","p3_old","p8"))
 # -----------------------------------------------------------------------------------
-setwd(path)
-
-
-
-test <- readRDS("/home/users/dkyriakis/PhD/Projects/epi-scRNA/3.Projection/SCT_Merged.rds")
 
 
 
 
+test <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds")
+
+dir.create("4.Clustering")
 setwd("4.Clustering")
+source('/home/users/dkyriakis/PhD/Projects/Yahaya/Script_Library/Clustering.R')
+library("cluster")
+library("clustree")
 # =================== Optimal Clusters ======================================
-test <- FindClusters(test, resolution = seq(0,1.1,0.1))
-clustree <-clustree(test,prefix="integrated_snn_res.")
-test$Cluster <- test$integrated_snn_res.0.4
+test$Cluster <- test$Liger_Clusters
 pdf("Clustering.pdf")
-plot(clustree)
-DimPlot(test,group.by = c("Cluster"),reduction="umap",cols=color_clust)
-DimPlot(test,group.by = c("condition"),reduction="umap")
+DimPlot(test,group.by = c("Cluster"),reduction="liger_umap",cols=color_clust)
+DimPlot(test,group.by = c("Phase"),reduction="liger_umap")
 dev.off()
-
-
-
-
-
-# ================================================== MARKERS ===================================================
-excit_neurons <- c("SYT1",
-"RBFOX3",
-"CUX2",
-"SATB2",
-"RORB",
-"TLE4")
-
-neurons <-c("GAD1",
-"GAD2",
-"PVALB",
-"SST",
-"VIP",
-"SV2C")
-
-Glia<-c("NRGN",
-"THY1",
-"SLC1A2",
-"GFAP",
-"PLP1",
-"PDGFRA",
-"PTPRC",
-"CLDN5")
-
-
-
-
-genelist<-c(excit_neurons,neurons,Glia)
-DefaultAssay(test)<-"RNA"
-pdf("PAPER_Markers_RNA.pdf")
-for (gene in genelist){
-  plot(FeaturePlot(test,gene ,order=TRUE,cols = c("lightgrey","#FDBB84","#EF6548","#D7301F","#B30000","#7F0000"),reduction="umap"))
-}
-dev.off()
-
-
-genelist<-c(excit_neurons,neurons,Glia)
-DefaultAssay(test)<-"SCT"
-pdf("PAPER_Markers_SCT.pdf")
-for (gene in genelist){
-  plot(FeaturePlot(test,gene ,order=TRUE,cols = c("lightgrey","#FDBB84","#EF6548","#D7301F","#B30000","#7F0000"),reduction="umap"))
-}
-dev.off()
-
-
-# ================================= ASSIGN CLUSTERS TO CELL TYPES ====================================
-
-test$Cell_Type <- as.vector(test$Cluster)
-test$Cell_Type[test$Cell_Type %in% c(11)] <- "AST-PP"
-test$Cell_Type[test$Cell_Type %in% c(15)] <- "AST-FB"
-
-test$Cell_Type[test$Cell_Type %in% c(14)] <- "OPC"
-test$Cell_Type[test$Cell_Type %in% c(10)] <- "Oligo"
-
-test$Cell_Type[test$Cell_Type %in% c(12)] <- "Endothelial"
-test$Cell_Type[test$Cell_Type %in% c(2,4,7,13,16)] <- "Interneurons"
-test$Cell_Type[test$Cell_Type %in% c(8)] <-"L5/6"
-test$Cell_Type[test$Cell_Type %in% c(0,1,3,5,6,9,17)] <-"Neu"
-
-pdf("Split_Cond.pdf")
-plot(DimPlot(test, reduction = "umap", group.by = "Cell_Type", split.by = "condition"))
-plot(DimPlot(test, reduction = "umap", group.by = "condition"))
-plot(DimPlot(test, reduction = "umap", group.by = "Cluster"))
-plot(DimPlot(test, reduction = "umap", group.by = "Cell_Type"))
-dev.off()
-# -----------------------------------------------------------------------------------------------------
-
-
-
-DefaultAssay(test) <- "RNA"
-Idents(test)<-test$Condition
-nk.markers <- FindConservedMarkers(test, ident.1 = "control", grouping.var = "Cell_Type", verbose = FALSE)
-write.table(nk.markers,"Conserved.tsv")
-nk.markers_ord <- nk.markers[order( nk.markers$minimump_p_val),]
-library(patchwork)
-pdf("Conserved.pdf",width=12)
-plots <- VlnPlot(test, features =rownames(nk.markers_ord)[1:3], split.by = "condition", group.by = "Cell_Type", 
-    pt.size = 0, combine = FALSE)
-wrap_plots(plots = plots, ncol = 3)
-Idents(test)<-test$Cell_Type
-plot(DotPlot(test, features = rownames(nk.markers_ord)[1:40], cols = c("blue", "red"), dot.scale = 8, split.by = "condition")+ 
-    RotatedAxis())
-test2 <- ScaleData(test,features=rownames(nk.markers)[1:40])
-plot(DoHeatmap(test2, features = rownames(nk.markers)[1:40]) + NoLegend())
-dev.off()
-
-
-
-saveRDS(test,"/home/users/dkyriakis/PhD/Projects/epi-scRNA/4.Clustering/SCT_Merged_Cl.rds")
-
+# ---------------------------------------------------------------------------
+graphics.off()
+saveRDS(test,"/home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds")
 setwd("../")
+
+
+

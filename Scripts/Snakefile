@@ -1,31 +1,31 @@
 
 rule all:
     input:
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/1.ReadFiles/Object_list.rds",
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/2.Preprocess/Fl_Object_list.rds",
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/3.Projection/SCT_Merged.rds",
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/4.Clustering/SCT_Merged_Cl.rds",
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/5.DF/Astrocytes.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds",
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds",
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds",
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds",
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds"
 
 
 # ==================================================================== ReadFiles ======================================================================
 rule ReadFiles:
     input:
-        f1="/work/projects/esprit/epi-scRNA/Control/outs/filtered_feature_bc_matrix/",
-        f2="/work/projects/esprit/epi-scRNA/Epilepsy/outs/filtered_feature_bc_matrix/"
+        f1="/work/projects/esprit/Yahaya/Control/outs/filtered_feature_bc_matrix/",
+        f2="/work/projects/esprit/Yahaya/Epilepsy/outs/filtered_feature_bc_matrix/"
     output:
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/1.ReadFiles/Object_list.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds"
     shell:
-        "Rscript 1.ReadFiles.R"
+        "Rscript 1.QC.R"
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 # ==================================================================== Preprocess ======================================================================
 rule Preprocess:
     input:
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/1.ReadFiles/Object_list.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds"
     output:
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/2.Preprocess/Fl_Object_list.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds"
     shell:
         "Rscript 2.preproces.R"
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -34,9 +34,9 @@ rule Preprocess:
 # ==================================================================== Projection ======================================================================
 rule Projection:
     input:
-        f1="/home/users/dkyriakis/PhD/Projects/epi-scRNA/2.Preprocess/Fl_Object_list.rds"
+        f1="/home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds"
     output:
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/3.Projection/SCT_Merged.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds"
     shell:
         "Rscript 3.Projection.R"
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -45,9 +45,9 @@ rule Projection:
 # ==================================================================== Clustering ======================================================================
 rule Clustering:
     input:
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/3.Projection/SCT_Merged.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds"
     output:
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/4.Clustering/SCT_Merged_Cl.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds"
     shell:
         "Rscript 4.Clustering.R"
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -57,10 +57,10 @@ rule Clustering:
 # ==================================================================== DF Analysis ======================================================================
 rule DF:
     input:
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/4.Clustering/SCT_Merged_Cl.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds"
     output:
-        "/home/users/dkyriakis/PhD/Projects/epi-scRNA/5.DF/Astrocytes.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
     shell:
-        "Rscript 5.DF.R"
+        "Rscript 0.hm_sep.R"
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
 
