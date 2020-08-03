@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH -J Epi-analysis
+#SBATCH -J LIH_GME
 #SBATCH --mail-type=end,fail
 #SBATCH --mail-user=dimitrios.kyriakis@uni.lu
 #SBATCH -N 1
@@ -14,9 +14,9 @@ module load swenv/default-env/devel
 module load lang/R/3.6.0-foss-2019a-bare
 
 
-cd /home/users/dkyriakis/PhD/Projects/epi-scRNA/Snakemake_Analysis/
+cd /home/users/dkyriakis/PhD/Projects/Yahaya/Scripts/
 
 
 snakemake --dag | dot -Tpdf > dag.pdf
-snakemake --cores 5
+snakemake --cores 6
  

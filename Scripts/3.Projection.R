@@ -68,6 +68,7 @@ condition_names <- c(condition_names,c("Control","p13_old","p3_old","p8"))
 # -----------------------------------------------------------------------------------
 
 
+setwd("/home/users/dkyriakis/PhD/Projects/Yahaya/")
 
 tm_list_fl <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds")
 

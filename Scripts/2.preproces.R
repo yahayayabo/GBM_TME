@@ -36,12 +36,13 @@ lapply(script_libs,source)
 # ----------------------------------------------------------------------------------
 
 
+setwd("/home/users/dkyriakis/PhD/Projects/Yahaya/")
 
 tm_list <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds")
 # ================================= Filtering ======================================
 dir.create("2.Filtering")
 setwd("2.Filtering")
 tm_list_fl <- filtering_diy(tm_list,feat.mad = 3,count.mad = 3,mito.mad = 3,n_cores = 1)
-saveRDS(tm_list_fl,"/home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds"")
+saveRDS(tm_list_fl,"/home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds")
 setwd("../")
 # ----------------------------------------------------------------------------------

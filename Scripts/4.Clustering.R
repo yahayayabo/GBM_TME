@@ -68,6 +68,7 @@ condition_names <- c(condition_names,c("Control","p13_old","p3_old","p8"))
 # -----------------------------------------------------------------------------------
 
 
+setwd("/home/users/dkyriakis/PhD/Projects/Yahaya/")
 
 
 test <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds")

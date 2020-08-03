@@ -16,6 +16,7 @@ library(crayon)
 library(NMF)
 library(cowplot)
 library(ggpubr)
+library(useful)
 # ----------------------------------------------------------------------------------
 
 
@@ -67,6 +68,7 @@ filenames <- c(filenames,old_suresh)
 condition_names <- c(condition_names,c("Control","p13_old","p3_old","p8"))
 # -----------------------------------------------------------------------------------
 
+setwd("/home/users/dkyriakis/PhD/Projects/Yahaya/")
 
 
 test <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds")
@@ -191,13 +193,13 @@ pdf("Sep2.pdf")
 hist(merged_df_ord$Mouse_NUM_TRANSCR-merged_df_ord$Human_NUM_TRANSCR,breaks = 500)
 
 
-hist(colSums(Combined@assays$RNA@counts==0),breaks = 200)
-table(colSums(Combined@assays$RNA@counts==0) > 15000)
+hist(colSums(test@assays$RNA@counts==0),breaks = 200)
+table(colSums(test@assays$RNA@counts==0) > 15000)
 
 
-cells_rmv <- colnames(Combined)[colSums(Combined@assays$RNA@counts==0) > 15900]
-DimPlot(Combined)
-subset_com <- subset(Combined,cells=cells_rmv)
+cells_rmv <- colnames(test)[colSums(test@assays$RNA@counts==0) > 15900]
+DimPlot(test)
+subset_com <- subset(test,cells=cells_rmv)
 DimPlot(subset_com)
 dev.off()
 
@@ -250,6 +252,8 @@ Idents(Seurat)<-Seurat$Cluster
 DefaultAssay(Seurat) <- "RNA"
 Seurat <-NormalizeData(Seurat)
 Seurat <-ScaleData(Seurat)
+
+
 markers <- FindAllMarkers(Seurat,test.use="MAST",only.pos =T,latent.vars="nCount_RNA",logfc.threshold = 0.1)
 
 markers$gene <- rownames(markers)
