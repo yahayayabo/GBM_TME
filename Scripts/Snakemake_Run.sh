@@ -17,6 +17,6 @@ module load lang/R/3.6.0-foss-2019a-bare
 cd /home/users/dkyriakis/PhD/Projects/Yahaya/Scripts/
 
 
-snakemake --dag | dot -Tpdf > dag.pdf
+snakemake --dag | dot -Tpng > dag.png
 snakemake --cores 6
  
