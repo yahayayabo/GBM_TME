@@ -1,0 +1,27 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 7
+Rules claiming more threads will be scaled down.
+Job counts:
+	count	jobs
+	1	DF
+	1	all
+	2
+
+[Mon Aug  3 15:32:02 2020]
+rule DF:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
+    jobid: 5
+
+[Mon Aug  3 15:32:30 2020]
+Error in rule DF:
+    jobid: 5
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
+    shell:
+        Rscript 0.hm_sep.R
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: /mnt/irisgpfs/users/dkyriakis/PhD/Projects/Yahaya/Scripts/.snakemake/log/2020-08-03T153202.308051.snakemake.log

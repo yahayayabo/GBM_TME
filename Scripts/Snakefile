@@ -1,19 +1,18 @@
-
 rule all:
     input:
         "/home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds",
         "/home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds",
         "/home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds",
         "/home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds",
-        "/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds"
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds",
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/6.Mouse_Analysis/Mouse.rds"
 
 
 
 # ==================================================================== ReadFiles ======================================================================
 rule ReadFiles:
     input:
-        f1="/work/projects/esprit/Yahaya/Control/outs/filtered_feature_bc_matrix/",
-        f2="/work/projects/esprit/Yahaya/Epilepsy/outs/filtered_feature_bc_matrix/"
+        "/work/projects/esprit/Dropseq_projects/LIH2/new/mouse/counts/"
     output:
         "/home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds"
     shell:
@@ -56,12 +55,24 @@ rule Clustering:
 
 
 # ==================================================================== DF Analysis ======================================================================
-rule DF:
+rule Seperation:
     input:
         "/home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds"
     output:
-        "/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds"
     shell:
         "Rscript 0.hm_sep.R"
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+# ==================================================================== DF Analysis ======================================================================
+rule Mouse_Analysis:
+    input:
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds"
+    output:
+        "/home/users/dkyriakis/PhD/Projects/Yahaya/6.Mouse_Analysis/Mouse.rds"
+    shell:
+        "Rscript 6.Mouse_Analysis.R"
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
 

@@ -1,0 +1,60 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 7
+Rules claiming more threads will be scaled down.
+Job counts:
+	count	jobs
+	1	Clustering
+	1	DF
+	1	Preprocess
+	1	Projection
+	1	all
+	5
+
+[Mon Aug  3 15:03:48 2020]
+rule Preprocess:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds
+    jobid: 2
+
+[Mon Aug  3 15:15:52 2020]
+Finished job 2.
+1 of 5 steps (20%) done
+
+[Mon Aug  3 15:15:52 2020]
+rule Projection:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds
+    jobid: 3
+
+[Mon Aug  3 15:28:10 2020]
+Finished job 3.
+2 of 5 steps (40%) done
+
+[Mon Aug  3 15:28:10 2020]
+rule Clustering:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds
+    jobid: 4
+
+[Mon Aug  3 15:29:03 2020]
+Finished job 4.
+3 of 5 steps (60%) done
+
+[Mon Aug  3 15:29:03 2020]
+rule DF:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
+    jobid: 5
+
+[Mon Aug  3 15:29:19 2020]
+Error in rule DF:
+    jobid: 5
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
+    shell:
+        Rscript 0.hm_sep.R
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: /mnt/irisgpfs/users/dkyriakis/PhD/Projects/Yahaya/Scripts/.snakemake/log/2020-08-03T150348.327198.snakemake.log

@@ -1,0 +1,29 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 6
+Rules claiming more threads will be scaled down.
+Job counts:
+	count	jobs
+	1	Seperation
+	1	all
+	2
+
+[Fri Aug 14 16:17:42 2020]
+rule Seperation:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
+    jobid: 5
+
+[Fri Aug 14 16:19:04 2020]
+Finished job 5.
+1 of 2 steps (50%) done
+
+[Fri Aug 14 16:19:04 2020]
+localrule all:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds, /home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds, /home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds, /home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds, /home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
+    jobid: 0
+
+[Fri Aug 14 16:19:04 2020]
+Finished job 0.
+2 of 2 steps (100%) done
+Complete log: /mnt/irisgpfs/users/dkyriakis/PhD/Projects/Yahaya/Scripts/.snakemake/log/2020-08-14T161742.644991.snakemake.log

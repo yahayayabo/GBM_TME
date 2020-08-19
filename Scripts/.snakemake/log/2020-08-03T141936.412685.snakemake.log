@@ -1,0 +1,5 @@
+Building DAG of jobs...
+MissingInputException in line 12 of /mnt/irisgpfs/users/dkyriakis/PhD/Projects/Yahaya/Scripts/Snakefile:
+Missing input files for rule ReadFiles:
+/work/projects/esprit/Yahaya/Control/outs/filtered_feature_bc_matrix/
+/work/projects/esprit/Yahaya/Epilepsy/outs/filtered_feature_bc_matrix/

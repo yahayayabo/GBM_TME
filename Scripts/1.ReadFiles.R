@@ -64,7 +64,7 @@ condition_names <- c(condition_names,cond_names_new)
 
 old_suresh <- list.files("/home/users/dkyriakis/PhD/Projects/Yahaya/DATA_old",full.names=T)
 filenames <- c(filenames,old_suresh)
-condition_names <- c(condition_names,c("Control","p13_old","p3_old","p8"))
+condition_names <- c(condition_names,c("Control_old","p13_old","p3_old","p8_old"))
 # -----------------------------------------------------------------------------------
 
 

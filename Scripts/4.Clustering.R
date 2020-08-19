@@ -80,6 +80,18 @@ library("cluster")
 library("clustree")
 # =================== Optimal Clusters ======================================
 test$Cluster <- test$Liger_Clusters
+
+test <- FindNeighbors(test, dims = 1:20,reduction ="liger_inmf")
+test <- FindClusters(test, resolution = seq(0,1.1,0.1))
+#Liger_withbatch <- FindClusters(Liger_withbatch, resolution = 0.3)
+clustree <-clustree(test,prefix="RNA_snn_res.")
+test$Cluster <- as.factor(as.numeric(test$RNA_snn_res.0.3))
+pdf("Clustree.pdf")
+plot(clustree)
+dev.off()
+
+
+
 pdf("Clustering.pdf")
 DimPlot(test,group.by = c("Cluster"),reduction="liger_umap",cols=color_clust)
 DimPlot(test,group.by = c("Phase"),reduction="liger_umap")

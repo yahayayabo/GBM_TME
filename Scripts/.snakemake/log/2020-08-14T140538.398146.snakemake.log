@@ -1,0 +1,73 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 6
+Rules claiming more threads will be scaled down.
+Job counts:
+	count	jobs
+	1	Clustering
+	1	DF
+	1	Preprocess
+	1	Projection
+	1	ReadFiles
+	1	all
+	6
+
+[Fri Aug 14 14:05:38 2020]
+rule ReadFiles:
+    input: /work/projects/esprit/Dropseq_projects/LIH2/new/mouse/counts/
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds
+    jobid: 1
+
+[Fri Aug 14 14:24:00 2020]
+Finished job 1.
+1 of 6 steps (17%) done
+
+[Fri Aug 14 14:24:00 2020]
+rule Preprocess:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds
+    jobid: 2
+
+[Fri Aug 14 14:36:39 2020]
+Finished job 2.
+2 of 6 steps (33%) done
+
+[Fri Aug 14 14:36:39 2020]
+rule Projection:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds
+    jobid: 3
+
+[Fri Aug 14 14:49:45 2020]
+Finished job 3.
+3 of 6 steps (50%) done
+
+[Fri Aug 14 14:49:45 2020]
+rule Clustering:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds
+    jobid: 4
+
+[Fri Aug 14 14:50:40 2020]
+Finished job 4.
+4 of 6 steps (67%) done
+
+[Fri Aug 14 14:50:40 2020]
+rule DF:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds
+    output: /home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
+    jobid: 5
+
+[Fri Aug 14 15:32:51 2020]
+Finished job 5.
+5 of 6 steps (83%) done
+
+[Fri Aug 14 15:32:51 2020]
+localrule all:
+    input: /home/users/dkyriakis/PhD/Projects/Yahaya/1.QC/QC_list_data.rds, /home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds, /home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds, /home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds, /home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds
+    jobid: 0
+
+[Fri Aug 14 15:32:51 2020]
+Finished job 0.
+6 of 6 steps (100%) done
+Complete log: /mnt/irisgpfs/users/dkyriakis/PhD/Projects/Yahaya/Scripts/.snakemake/log/2020-08-14T140538.398146.snakemake.log
