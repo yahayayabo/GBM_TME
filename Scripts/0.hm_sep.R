@@ -68,10 +68,10 @@ filenames <- c(filenames,old_suresh)
 condition_names <- c(condition_names,c("Control","p13_old","p3_old","p8"))
 # -----------------------------------------------------------------------------------
 
-setwd("/home/users/dkyriakis/PhD/Projects/Yahaya/")
+setwd("/mnt/irisgpfs/projects/esprit/scAnalysis/Yahaya/")
 
 
-test <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds")
+test <- readRDS("4.Clustering/Liger_Merged_CL.rds")
 backup_obj<-test
 
 
@@ -221,5 +221,5 @@ human_data <- subset(test,subset=Cluster%in%c(2))
 
 
 
-saveRDS(mouse_data,"/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds")
-saveRDS(human_data,"/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Human.rds")
+saveRDS(mouse_data,"/mnt/irisgpfs/projects/esprit/scAnalysis/Yahaya/5.Seperation/Mouse.rds")
+saveRDS(human_data,"/mnt/irisgpfs/projects/esprit/scAnalysis/Yahaya/5.Seperation/Human.rds")

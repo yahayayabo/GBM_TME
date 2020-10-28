@@ -68,10 +68,10 @@ condition_names <- c(condition_names,c("Control","p13_old","p3_old","p8"))
 # -----------------------------------------------------------------------------------
 
 
-setwd("/home/users/dkyriakis/PhD/Projects/Yahaya/")
+setwd("/mnt/irisgpfs/projects/esprit/scAnalysis/Yahaya/")
 
 
-test <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds")
+test <- readRDS("3.Projection/Liger_Merged.rds")
 
 dir.create("4.Clustering")
 setwd("4.Clustering")
@@ -98,7 +98,7 @@ DimPlot(test,group.by = c("Phase"),reduction="liger_umap")
 dev.off()
 # ---------------------------------------------------------------------------
 graphics.off()
-saveRDS(test,"/home/users/dkyriakis/PhD/Projects/Yahaya/4.Clustering/Liger_Merged_CL.rds")
+saveRDS(test,"Liger_Merged_CL.rds")
 setwd("../")
 
 

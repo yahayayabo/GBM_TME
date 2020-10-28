@@ -65,10 +65,11 @@ filenames <- c(filenames,old_suresh)
 condition_names <- c(condition_names,c("Control","p13_old","p3_old","p8"))
 # -----------------------------------------------------------------------------------
 
-setwd("/home/users/dkyriakis/PhD/Projects/Yahaya/")
+
+setwd("/mnt/irisgpfs/projects/esprit/scAnalysis/Yahaya/")
 
 
-mouse_data <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/5.Seperation/Mouse.rds")
+mouse_data <- readRDS("5.Seperation/Mouse.rds")
 
 
 
@@ -139,10 +140,10 @@ write.table(markers[markers$p_val_adj<0.05 & abs(markers$avg_logFC)>0.1,],"sig_a
 
 
 
-saveRDS(Seurat,"/home/users/dkyriakis/PhD/Projects/Yahaya/6.Mouse_Analysis/Mouse.rds")
+#saveRDS(Seurat,"/home/users/dkyriakis/PhD/Projects/Yahaya/6.Mouse_Analysis/Mouse.rds")
 
 
-Seurat <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/6.Mouse_Analysis/Mouse.rds")
+#Seurat <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/6.Mouse_Analysis/Mouse.rds")
 
 
 Seurat$Cell_Type <- as.vector(Seurat$Cluster)

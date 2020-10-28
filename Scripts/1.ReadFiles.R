@@ -83,7 +83,7 @@ if (get_os()=="windows"){
 
 
 
-setwd("/home/users/dkyriakis/PhD/Projects/Yahaya/")
+setwd("/mnt/irisgpfs/projects/esprit/scAnalysis/Yahaya/")
 # ================================== QC ===========================================
 dir.create("1.QC")
 setwd("1.QC")

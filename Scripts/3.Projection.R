@@ -68,22 +68,28 @@ condition_names <- c(condition_names,c("Control","p13_old","p3_old","p8"))
 # -----------------------------------------------------------------------------------
 
 
-setwd("/home/users/dkyriakis/PhD/Projects/Yahaya/")
+setwd("/mnt/irisgpfs/projects/esprit/scAnalysis/Yahaya/")
 
-tm_list_fl <- readRDS("/home/users/dkyriakis/PhD/Projects/Yahaya/2.Preprocess/Fl_QC_list_data.rds")
+tm_list_fl <- readRDS("2.Preprocess/Fl_QC_list_data.rds")
 
 # ================================= Projection ======================================
 dir.create("3.Projection_nobatch")
 setwd("3.Projection_nobatch")
 test <- nobatch_projection(tm_list_fl)
+
+
+
+gene_plot_c <- c("PLP1","P2RY12","GJA1","OLIG1","GAD2","IGF2","CCDC153")
+gene_plot <- rownames(test)[match(gene_plot_c, toupper(rownames(test)))]
+
+
 pdf("Projections.pdf")
-FeaturePlot(test, c("PLP1","P2RY12","GJA1","OLIG1","GAD2","IGF2","CCDC153"),order=TRUE,cols = c("lightgrey","#FDBB84","#EF6548","#D7301F","#B30000","#7F0000"))
+FeaturePlot(test, gene_plot,order=TRUE,cols = c("lightgrey","#FDBB84","#EF6548","#D7301F","#B30000","#7F0000"))
 dev.off()
 pdf("Cells.pdf",width=12)
 DimPlot(test,group.by = "condition",cols=color_cond)
 dev.off()
 setwd("../")
-
 
 
 dir.create("3.Projection")
@@ -93,7 +99,7 @@ require(SeuratWrappers)
 test <-liger_projection(test,split.by="condition",k=20,lamda=5,n_neighbors=10)
 # test <- SCT_projection(tm_list_fl)
 pdf("Markers.pdf")
-FeaturePlot(test, c("PLP1","P2RY12","GJA1","OLIG1","GAD2","IGF2","CCDC153"),
+FeaturePlot(test, gene_plot,
     order=TRUE,cols = c("lightgrey","#FDBB84","#EF6548","#D7301F","#B30000","#7F0000"),reduction="liger_umap")
 dev.off()
 
@@ -102,6 +108,6 @@ DimPlot(test,group.by = "condition",cols=color_cond,reduction="liger_umap")
 dev.off()
 
 
-saveRDS(test,"/home/users/dkyriakis/PhD/Projects/Yahaya/3.Projection/Liger_Merged.rds")
+saveRDS(test,"Liger_Merged.rds")
 setwd("../")
 # ----------------------------------------------------------------------------------
