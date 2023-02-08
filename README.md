@@ -1,6 +1,6 @@
 # GBM_TME
 Analysis of GBM tumor microenvironment
-For this analysis we will use the following TME datasets
+Here you will find a guide on how to create figures in Yabo et al. 2023
 
 
 
