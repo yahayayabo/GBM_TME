@@ -237,5 +237,225 @@ saveRDS(scenicOptions, file="int/scenicOptions.Rds")
 
 # heatmap of enriched TF was done with modifications as described here https://github.com/TheJacksonLaboratory/singlecellglioma-verhaaklab/blob/master/analysis/Fig3c-scenic-IDHmut.R
 
+#load data
+
+myeloid_obj <- readRDS("Myeloid_subset.rds")
+myeloid_obj_DGEM  <- myeloid_obj@assays$RNA@counts
+
+metadata <-  as.data.frame(myeloid_obj[["umap"]]@cell.embeddings)
+myeloid_obj <- AddMetaData(myeloid_obj, metadata$UMAP_1, col.name = "UMAP_1")
+myeloid_obj <- AddMetaData(myeloid_obj, metadata$UMAP_2, col.name = "UMAP_2")
+
+umap_coords_2d <- read.csv("Subset_annotation.csv", header = TRUE)
+View(umap_coords_2d)
+
+# Limit to sample of interest
+umap_data_mut <- umap_coords_2d %>%
+  filter(case_barcode %in% c("MGBM11", "MGBM13", "MGBM15", "MGBM17", "Normal","P13", "P3CTR", "P8", "T101", "T16","T192", "T233", "T347", "T470"))
+
+
+## Keep only cell type of interest
+cells_to_keep = which(umap_coords_2d$cell_state %in%c("CL0", "CL1", "CL2", "CL3", "CL4", "CL5", "CL6", "CL7", "CL8"))
+clust_annot <- umap_coords_2d[cells_to_keep, ]
+
+# Extract the exact name of cells.
+cell_names_keep <- clust_annot$cell_barcode
+
+
+expr_norm_data <- myeloid_obj_DGEM[ ,colnames(myeloid_obj_DGEM)%in%cell_names_keep]
+all(colnames(expr_norm_data)==clust_annot$cell_barcode)
+expr_norm_data_sample <- expr_norm_data
+clust_annot_sample <- clust_annot
+
+# Make sure that the same cells are being subsetted.
+all(colnames(expr_norm_data_sample)==clust_annot_sample$cell_barcode)
+
+## Use broad tumor cell classification.
+myeloid_obj@meta.data$sample <- clust_annot_sample$sample
+myeloid_obj@meta.data$New_names <- clust_annot_sample$New_names
+
+# Re-load SCENIC results 
+auc_rankings <- readRDS(".../3.3_aucellRankings.Rds")
+regulonAUC <- readRDS(".../3.4_regulonAUC.Rds")
+
+## Create a data.frame with the gene sets/TFs and cells.
+regulonAUC_df = as.data.frame(getAUC(regulonAUC))
+
+## The annotation files we have match the regulonAUC data.
+all(clust_annot_sample$cell_barcode==colnames(regulonAUC_df))
+
+## generate z-scores for variable A using the scale() function
+## scale(A, center = TRUE, scale = TRUE). These are the defaults.
+regulonAUC_scaled = t(apply(as.matrix(regulonAUC_df), 1, scale))
+
+## Provide the case_barcode, cell_state, and subtype annotations for each cell.
+annot_df = data.frame(clust_annot_sample$cell_barcode, rep("Myeloid", dim(clust_annot_sample)[1]), clust_annot_sample$case_barcode, clust_annot_sample$cell_state)
+colnames(annot_df) <- c("barcode","New_names", "case_barcode", "cell_state")
+epimut_cols <- colorRamp2(c(0, 0.2, 0.4, 0.6, 0.8, 1.0), c("#4575b4", "#91bfdb", "#e0f3f8", "#fee090", "#fc8d59", "#d73027"))
+
+## Define the annotation colors:
+ha = HeatmapAnnotation(df = annot_df,
+                       col = list(case_barcode = c("MGBM11" = "#a6cee3",
+                                                   "MGBM13" = "#1f78b4",
+                                                   "MGBM15" = "#b2df8a",
+                                                   "MGBM17" = "#33a02c",
+                                                   "Normal" = "#fb9a99",
+                                                   "P13" = "#e31a1c",
+                                                   "P3CTR" = "#fdbf6f",
+                                                   "P8" = "#ff7f00",
+                                                   "T101" = "#cab2d6",
+                                                   "T16" = "#6a3d9a",
+                                                   "T192" = "#ffff99",
+                                                   "T233" = "#b15928",
+                                                   "T347" = "#ffed6f",
+                                                   "T470" = "#fb8072"),
+                                  cell_state = c("CL0" = "#e5f5e0",
+                                                 "CL1" = "#c7e9c0",
+                                                 "CL2" = "#a1d99b",
+                                                 "CL3" = "#74c476",
+                                                 "CL4" = "#41ab5d",
+                                                 "CL5" = "#238b45",
+                                                 "CL6" = "#005a32",
+                                                 "CL7" = "blue",
+                                                 "CL8" = "#e31a1c"),
+                                  subtype = c("Myeloid" = "#AF8DC3")))
+
+## What are the TFs considered in this analysis?
+scenic_tfs = data.frame(tf = sapply(strsplit(rownames(regulonAUC_scaled), "_| "), "[[", 1))
+
+
+cell_state <- clust_annot_sample$cell_state
+
+## Apply kruskal.wallis across three cell types. Select X number of TFs
+kw_test_results = row_kruskalwallis(regulonAUC_scaled, clust_annot_sample$cell_state)
+kw_test_results$adj_pvalue = p.adjust(kw_test_results$pvalue, method = "fdr", n = length(kw_test_results$pvalue))
+kw_test_results_diff = kw_test_results[which(kw_test_results$pvalue< 1e-127), ]
+tfs_to_keep = rownames(kw_test_results_diff)
+
+## Remove any "_extended" TFs that are also represented.
+tmp = sapply(strsplit(rownames(regulonAUC_scaled), "_| "), "[[", 1) %>% as.data.frame()
+colnames(tmp) <- "tf"
+duplicated_tf = tmp %>%
+  group_by(tf) %>%
+  summarise(tf_counts = n()) %>%
+  filter(tf_counts >= 2)
+dup_tfs_remove = rownames(regulonAUC_scaled)[which(sapply(strsplit(rownames(regulonAUC_scaled), "_| "), "[[", 1)%in%duplicated_tf$tf & grepl("_extended", rownames(regulonAUC_scaled)))]
+tfs_to_keep_uniq = rownames(regulonAUC_scaled)[!rownames(regulonAUC_scaled)%in%dup_tfs_remove]
+
+## Take the 15 most enriched TFs per cell state. Some may overlap leading there to be fewer than 45 across the two cell states
+CL0_rank = sort(apply(regulonAUC_scaled[tfs_to_keep_uniq, cell_state=="CL0"], 1, median), decreasing = TRUE)
+CL1_rank = sort(apply(regulonAUC_scaled[tfs_to_keep_uniq, cell_state=="CL1"], 1, median), decreasing = TRUE)
+CL2_rank = sort(apply(regulonAUC_scaled[tfs_to_keep_uniq, cell_state=="CL2"], 1, median), decreasing = TRUE)
+CL3_rank = sort(apply(regulonAUC_scaled[tfs_to_keep_uniq, cell_state=="CL3"], 1, median), decreasing = TRUE)
+CL4_rank = sort(apply(regulonAUC_scaled[tfs_to_keep_uniq, cell_state=="CL4"], 1, median), decreasing = TRUE)
+CL5_rank = sort(apply(regulonAUC_scaled[tfs_to_keep_uniq, cell_state=="CL5"], 1, median), decreasing = TRUE)
+CL6_rank = sort(apply(regulonAUC_scaled[tfs_to_keep_uniq, cell_state=="CL6"], 1, median), decreasing = TRUE)
+CL7_rank = sort(apply(regulonAUC_scaled[tfs_to_keep_uniq, cell_state=="CL7"], 1, median), decreasing = TRUE)
+CL8_rank = sort(apply(regulonAUC_scaled[tfs_to_keep_uniq, cell_state=="CL8"], 1, median), decreasing = TRUE)
+
+ranked_tfs_to_keep = unique(c( names(CL0_rank[1:15]), names(CL1_rank[1:15]), names(CL2_rank[1:15]),
+                               names(CL3_rank[1:15]), names(CL4_rank[1:15]),names(CL5_rank[1:15]),
+                               names(CL6_rank[1:15]), names(CL7_rank[1:15]), names(CL8_rank[1:15])))
+
+## Filter the regulonAUC plot.
+regulonAUC_scaled_filt = regulonAUC_scaled[ranked_tfs_to_keep, ]
+rownames(regulonAUC_scaled_filt) <- gsub("_extended", "", rownames(regulonAUC_scaled_filt))
+
+## Gather activity by cell state.
+Cl_0_df <- as.data.frame(CL0_rank)
+Cl_0_df$tf <- sapply(strsplit(rownames(Cl_0_df), " "), "[[", 1)
+Cl_0_df$tf  <- reorder(Cl_0_df$tf , Cl_0_df$CL0_rank)
+
+Cl_1_df <- as.data.frame(CL1_rank)
+Cl_1_df$tf <- sapply(strsplit(rownames(Cl_1_df), " "), "[[", 1)
+Cl_1_df$tf  <- reorder(Cl_1_df$tf , Cl_1_df$CL1_rank)
+
+Cl_2_df <- as.data.frame(CL2_rank)
+Cl_2_df$tf <- sapply(strsplit(rownames(Cl_2_df), " "), "[[", 1)
+Cl_2_df$tf  <- reorder(Cl_2_df$tf , Cl_2_df$CL2_rank)
+
+Cl_3_df <- as.data.frame(CL3_rank)
+Cl_3_df$tf <- sapply(strsplit(rownames(Cl_3_df), " "), "[[", 1)
+Cl_3_df$tf  <- reorder(Cl_3_df$tf , Cl_3_df$CL3_rank)
+
+Cl_4_df <- as.data.frame(CL4_rank)
+Cl_4_df$tf <- sapply(strsplit(rownames(Cl_4_df), " "), "[[", 1)
+Cl_4_df$tf  <- reorder(Cl_4_df$tf , Cl_4_df$CL4_rank)
+
+Cl_5_df <- as.data.frame(CL5_rank)
+Cl_5_df$tf <- sapply(strsplit(rownames(Cl_5_df), " "), "[[", 1)
+Cl_5_df$tf  <- reorder(Cl_5_df$tf , Cl_5_df$CL5_rank)
+
+Cl_6_df <- as.data.frame(CL6_rank)
+Cl_6_df$tf <- sapply(strsplit(rownames(Cl_6_df), " "), "[[", 1)
+Cl_6_df$tf  <- reorder(Cl_6_df$tf , Cl_6_df$CL6_rank)
+
+Cl_7_df <- as.data.frame(CL7_rank)
+Cl_7_df$tf <- sapply(strsplit(rownames(Cl_7_df), " "), "[[", 1)
+Cl_7_df$tf  <- reorder(Cl_7_df$tf , Cl_7_df$CL7_rank)
+
+Cl_8_df <- as.data.frame(CL8_rank)
+Cl_8_df$tf <- sapply(strsplit(rownames(Cl_8_df), " "), "[[", 1)
+Cl_8_df$tf  <- reorder(Cl_8_df$tf , Cl_8_df$CL8_rank)
+
+### Create a matrix of summary values:
+median_activity_df <- Cl_0_df %>%
+  inner_join(Cl_1_df, by="tf") %>%
+  inner_join(Cl_2_df, by="tf") %>%
+  inner_join(Cl_3_df, by="tf") %>%
+  inner_join(Cl_4_df, by="tf") %>%
+  inner_join(Cl_5_df, by="tf") %>%
+  inner_join(Cl_6_df, by="tf") %>%
+  inner_join(Cl_7_df, by="tf") %>%
+  inner_join(Cl_8_df, by="tf") %>%
+  select(tf, CL0_rank, CL1_rank, CL2_rank, CL3_rank, CL4_rank, CL5_rank, CL6_rank, CL7_rank, CL8_rank)
+median_activity_df_filt <- median_activity_df %>%
+  pivot_longer(cols= c(CL0_rank:CL8_rank),
+               names_to = "cell_state",
+               values_to = "activity") %>%
+  mutate(cell_state = recode(cell_state, 
+                             `CL0_rank` = "CL0",
+                             `CL1_rank` = "CL1",
+                             `CL2_rank` = "CL2",
+                             `CL3_rank` = "CL3",
+                             `CL4_rank` = "CL4",
+                             `CL5_rank` = "CL5",
+                             `CL6_rank` = "CL6",
+                             `CL7_rank` = "CL7",
+                             `CL8_rank` = "CL8")) %>%
+  mutate(tf = gsub("_extended", "", tf)) %>%
+  filter(tf%in%c(sapply(strsplit(rownames(regulonAUC_scaled_filt), "_| "), "[[", 1)))
+
+## Set the TF order to be ranked for each cell state.
+tf_order <- sapply(strsplit(rownames(regulonAUC_scaled_filt), "_| "), "[[", 1)
+tf_order
+#tf_reverse <- reverse(tf_order)
+tf_reverse <- rev(tf_order)
+tf_reverse
+
+#tf_levels = tf_order
+tf_levels = tf_reverse
+state_levels = c("CL8","CL7","CL6","CL5","CL4","CL3","CL2", "CL1", "CL0")
+median_activity_df_filt$tf <-  factor(median_activity_df_filt$tf, levels = tf_levels)
+median_activity_df_filt$cell_state <-  factor(median_activity_df_filt$cell_state, levels = rev(state_levels))
+
+
+##Heatmap
+palette     <- c( "#8CB9DA" , "white", "#A43838", "#8B0000")
+ggplot(data = median_activity_df_filt) +
+  geom_tile(aes(x = cell_state, y = tf, fill=activity), color = "white", size = 0.1) + # bigger size means bigger spacer
+  scale_fill_gradientn(colours=c(palette))  +
+  scale_y_discrete(position = "right") +
+  labs(x="", y= "", fill="Relative TF activity\n(Z-score)")  +
+  theme_grey(base_size = 10) + # text size
+  theme(axis.ticks = element_blank(),
+        panel.background = element_blank(),
+        plot.title = element_text(size = 10, colour = "gray50"),
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 10))
+
+
+
+
+
 
 
