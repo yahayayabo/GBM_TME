@@ -1,13 +1,16 @@
 
 ### Figure 2  ####   
-
+Merged_myeloid_data$Final_Annot <- as.numeric(Merged_myeloid_data$Cluster) -1
+Merged_myeloid_data$Final_Annot[Merged_myeloid_data$Cluster%in% c(2,10,14,15)] <- "Mo-TAMs"
+Merged_myeloid_data$Final_Annot[Merged_myeloid_data$Cluster%in% c(0,1,3,4,5,6,7,8,11,12)] <- "Mg-TAMs"
+Merged_myeloid_data$Final_Annot[Merged_myeloid_data$Cluster%in% c(9,13,16)] <- "BAMs"
 
 
 
 # feature plots of some key marker genes
-
-FeaturePlot(Merged_myeloid_data, features = c("Itgam","P2ry12", "Ly6c2", "Mrc1"))
-
+DimPlot(Merged_myeloid_data,group.by="Final_Annot",label=T)+NoLegend()
+features <- c("Itgam","P2ry12","Ly6c2","Mrc1")
+FeaturePlot(Seurat,features= features,order=T)
 
 #2b
 
