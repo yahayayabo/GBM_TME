@@ -10,7 +10,7 @@ Merged_myeloid_data$Final_Annot[Merged_myeloid_data$Cluster%in% c(9,13,16)] <- "
 # feature plots of some key marker genes
 DimPlot(Merged_myeloid_data,group.by="Final_Annot",label=T)+NoLegend()
 features <- c("Itgam","P2ry12","Ly6c2","Mrc1")
-FeaturePlot(Seurat,features= features,order=T)
+FeaturePlot(Merged_myeloid_data,features= features,order=T)
 
 #2b
 
