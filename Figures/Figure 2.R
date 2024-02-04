@@ -1,36 +1,108 @@
 
-### Figure 2  ####   
-Merged_myeloid_data$Final_Annot <- as.numeric(Merged_myeloid_data$Cluster) -1
-Merged_myeloid_data$Final_Annot[Merged_myeloid_data$Cluster%in% c(2,10,14,15)] <- "Mo-TAMs"
-Merged_myeloid_data$Final_Annot[Merged_myeloid_data$Cluster%in% c(0,1,3,4,5,6,7,8,11,12)] <- "Mg-TAMs"
-Merged_myeloid_data$Final_Annot[Merged_myeloid_data$Cluster%in% c(9,13,16)] <- "BAMs"
+####  Figure 2  #####
+
+library(Seurat)
+
+#Fig 2A - generating list of differentially expressed genes for each cell type in PDOX vs Naive nude 
+
+PDOX_vs_NaiveNude_Endothelial <- FindMarkers(PDOX_GL261_TME, ident.1 = "PDOX", ident.2 = "NaiveNude",
+                                             group.by = "group", subset.ident = "Endothelial")
+
+PDOX_vs_NaiveNude_Myeloid <- FindMarkers(PDOX_GL261_TME, ident.1 = "PDOX", ident.2 = "NaiveNude",
+                                         group.by = "group", subset.ident = "Myeloid")
+
+PDOX_vs_NaiveNude_Astrocytes <- FindMarkers(PDOX_GL261_TME, ident.1 = "PDOX", ident.2 = "NaiveNude",
+                                            group.by = "group", subset.ident = "Astrocytes")
+
+PDOX_vs_NaiveNude_OPCs <- FindMarkers(PDOX_GL261_TME, ident.1 = "PDOX", ident.2 = "NaiveNude",
+                                      group.by = "group", subset.ident = "OPCs")
+
+PDOX_vs_NaiveNude_Oligodendrocytes <- FindMarkers(PDOX_GL261_TME, ident.1 = "PDOX", ident.2 = "NaiveNude",
+                                                  group.by = "group", subset.ident = "Oligodendrocytes")
+
+PDOX_vs_NaiveNude_Pericytes <- FindMarkers(PDOX_GL261_TME, ident.1 = "PDOX", ident.2 = "NaiveNude",
+                                           group.by = "group", subset.ident = "Pericytes")
+
+PDOX_vs_NaiveNude_Ependymal <- FindMarkers(PDOX_GL261_TME, ident.1 = "PDOX", ident.2 = "NaiveNude",
+                                           group.by = "group", subset.ident = "Ependymal")
+
+
+# generating list of differentially expressed genes for each cell type in GL261 Vs Naive black6 per cell type
+
+GL261_vs_Black6_Endothelial <- FindMarkers(PDOX_GL261_TME, ident.1 = "GL261", ident.2 = "Black6",
+                                           group.by = "group", subset.ident = "Endothelial")
+
+GL261_vs_NaiveNude_Myeloid <- FindMarkers(PDOX_GL261_TME, ident.1 = "GL261", ident.2 = "Black6",
+                                          group.by = "group", subset.ident = "Myeloid")
+
+GL261_vs_NaiveNude_Astrocytes <- FindMarkers(PDOX_GL261_TME, ident.1 = "GL261", ident.2 = "Black6",
+                                             group.by = "group", subset.ident = "Astrocytes")
+
+GL261_vs_NaiveNude_OPCs <- FindMarkers(PDOX_GL261_TME, ident.1 = "GL261", ident.2 = "Black6",
+                                       group.by = "group", subset.ident = "OPCs")
+
+GL261_vs_NaiveNude_Oligodendrocytes <- FindMarkers(PDOX_GL261_TME, ident.1 = "GL261", ident.2 = "Black6",
+                                                   group.by = "group", subset.ident = "Oligodendrocytes")
+
+GL261_vs_NaiveNude_Pericytes <- FindMarkers(PDOX_GL261_TME, ident.1 = "GL261", ident.2 = "Black6",
+                                            group.by = "group", subset.ident = "Pericytes")
+
+GL261_vs_NaiveNude_Ependymal <- FindMarkers(PDOX_GL261_TME, ident.1 = "GL261", ident.2 = "Black6",
+                                            group.by = "group", subset.ident = "Ependymal")
+
+write.csv(All_list, "Supplementary_Table_S3.csv", quote = FALSE,  row.names = TRUE)
 
 
 
-# feature plots of some key marker genes
-DimPlot(Merged_myeloid_data,group.by="Final_Annot",label=T)+NoLegend()
-features <- c("Itgam","P2ry12","Ly6c2","Mrc1")
-FeaturePlot(Merged_myeloid_data,features= features,order=T)
+#Fig 2C - DotPlot of key marker genes for the identified cell types
 
-#2b
+# subset each cell type from the PDOX_GL261_TME
 
-#first per datasets
-dittoBarPlot(Merged_myeloid_data,"Cell_Type", group.by = "dataset", 
-             var.labels.reorder = c(1,3,2),
-             x.reorder = c(2,1,4,3), 
-             color.panel = c("BAM" = "red" ,'Mo/MG' = 'blue', 'MG' = '#4daf4a')) +
-  theme(text = element_text(size = 16))
+# Myeloid
+Myeloid <- subset(PDOX_GL261_TME, subset = Celltype == "Myeloid")
+genes = c("Spp1", "Cst7", "Ch25h", "P2ry12", "Gpr34", "Tmem119")
+DotPlot(Myeloid, features = genes, dot.min = 0, scale = TRUE, dot.scale = 8, cols = c("blue", "red")) +
+  RotatedAxis() + coord_flip() 
 
-##subset only NORLUX (PDOX and Yolanda) datasets and show stack chart
-norlux_datasets <- subset(Merged_myeloid_data, subset=dataset%in%c("PDOX", 'Yolanda'))
-table(norlux_datasets$dataset)
-#PDOX  Bozena Yolanda   Pombo 
-#5239       0    1336       0 
-table(norlux_datasets$orig.ident)
+#OPC 
+OPCs <- subset(PDOX_GL261_TME, subset = Celltype == "OPCs")
+genes = c("S100a1","Cspg5","Cacng4", "Pdgfra","Ccnd2", "Stmn1","Apod", "Plp1")
+DotPlot(OPCs, features = genes, dot.min = 0, scale = TRUE, dot.scale = 8, cols = c("blue", "red")) +
+  RotatedAxis() + coord_flip() 
 
-dittoBarPlot(norlux_datasets,"Cell_Type", group.by = "orig.ident", 
-             var.labels.reorder = c(1,3,2),
-             x.reorder = c(5,8,9,13,14,11,12,7,10,6,4,3,1,2), 
-             color.panel = c("BAM" = "red" ,'Mo/MG' = 'blue', 'MG' = '#4daf4a')) +
-  theme(text = element_text(size = 16))
+#Astrocytes 
+Astrocytes <- subset(PDOX_GL261_TME, subset = Celltype == "Astrocytes")
+genes = c("H2.D1", "Gfap", "Vim","Slc1a2", "Slc1a3", "Slc38a3")
+DotPlot(Astrocytes, features = genes, dot.min = 0, scale = TRUE, dot.scale = 8, cols = c("blue", "red")) +
+  RotatedAxis() + coord_flip() 
+
+#Endothelial 
+Endothelial <- subset(PDOX_GL261_TME, subset = Celltype == "Endothelial")
+genes = c("Fn1", "Angpt2","Ifitm1", "Spock2", "Igfbp5", "Ttyh1")
+DotPlot(Endothelial, features = genes, dot.min = 0, scale = TRUE, dot.scale = 8, cols = c("blue", "red")) +
+  RotatedAxis() + coord_flip() 
+
+
+
+#Fig 2D - DotPlot of key marker genes from the human GBM dataset
+
+## Upload Darmanis seurat object (Darmanis_obj)
+
+Darmanis_obj <- readRDS("~/Darmanis_obj.rds")
+
+dim(Darmanis_obj)
+#[1] 23368  3589
+
+## see expression of activation markers per celltype
+
+Idents(Darmanis_obj) <- "Celltype"
+Darmanis_obj@active.ident <- factor(Darmanis_obj@active.ident, levels=c("Immune cell", "OPC", "Astocyte", "Vascular", "Oligodendrocyte", "Neuron", "Neoplastic"))
+
+var=c( "ANGPT2","IFITM1", "FN1", "CRYAB", "VIM", "GFAP","CSPG5","CACNG4", "PDGFRA","CLEC7A" , "APOE","SPP1")
+
+DotPlot(Darmanis_obj, features = var,   scale = FALSE, dot.scale = 8, cols = c("blue", "red")) +
+  RotatedAxis() + coord_flip() 
+
+
+
 
