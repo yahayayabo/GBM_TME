@@ -1,543 +1,779 @@
 
-#6c
+####  Figure 6  #####
 
 library(Seurat)
-library(BiocParallel)
-library(tidyverse)
-library(RColorBrewer)
-library(cowplot)
-library(ggpubr)
+library(Azimuth)
+library(patchwork)
 library(dittoSeq)
+library(tidyverse)
+library(ggpubr)
 library(Matrix)
+library(readxl)
+library(reshape2)
+library(scrabble)
+
+
+#load data
+sobj <- readRDS("azimuth_core_GBmap.rds")
+
+#Fig 6A
+
+#subset only TAM-BDM, TAM-MG and Mono
+
+sobj_myeloid <- subset(sobj, subset=annotation_level_3%in%c("Mono","TAM-BDM","TAM-MG"))
+dim(sobj_myeloid)
+
+
+DimPlot(sobj_myeloid, reduction = "umap")
+
+#score cell base on our signatures
+
+#score cells using scrabble
+Human_GEM <- as.matrix(sobj@assays$RNA@counts)
+
+
+#load Human Mg and Human Mo gene lists from Table S6
+Mg_Mo_TAM_sig <- read.table("Human_Mg_Human_Mo_gene_lists.csv", header=TRUE,sep=";")
+
+
+#Set column headers as id variables
+Mg_Mo_TAM_sig <- melt(Mg_Mo_TAM_sig)
+
+#create separate vectors containing the Suva signature genes
+#Mg
+MG_genes <- as.vector(Mg_Mo_TAM_sig$Mg.TAM[Mg_Mo_TAM_sig$Mg.TAM!=""])
+
+#Mo
+Mo_genes <- as.vector(Mg_Mo_TAM_sig$Mo.TAM[Mg_Mo_TAM_sig$Mo.TAM!=""])
+
+
+
+#get only the unique signature genes that are present in the normalized and filtered dataset
+Mg.related.genes<-unique(MG_genes[MG_genes%in%rownames(Human_GEM)])
+
+Mo.related.genes<-unique(Mo_genes[Mo_genes%in%rownames(Human_GEM)])
+
+
+#create a list containing all signature related genes
+vector <- list(Mg.related.genes, Mo.related.genes)
+
+#check class (supposed to be a list; package requirement)
+class(vector)
+
+
+TAM_Scores <- scrabble::score(Human_GEM, vector, center = F, nbin = 30, n = 100, replace = F)
+
+
+#check class (it should be a matrix)
+class(TAM_Scores)
+
+colnames(TAM_Scores) <- c("Mg.TAM", "Mo.TAM")
+
+#write output
+write.table(TAM_Scores, file = "TAM_Scores_GBmap.txt", sep="\t")
+
+rows <- apply(TAM_Scores, 1 , function(x) any( x > 1 ))
+
+criteria_one <- apply(TAM_Scores,1,function(x) colnames(TAM_Scores)[which.max(x)])
+
+
+metadata <- as.data.frame(criteria_one)
+
+sobj_myeloid <- AddMetaData(sobj_myeloid, metadata, col.name = "TAMScores")
+
+
+DimPlot(sobj_myeloid, reduction = "umap", group.by = "TAMScores", cols = c('Mg.TAM' = '#4daf4a', 'Mo.TAM' = 'blue'))
+
+Idents(sobj_myeloid) <- "TAMScores"
+
+dittoBarPlot(sobj_myeloid, "ident", group.by = "patient",
+             color.panel = c('Mg.TAM' = '#4daf4a', 'Mo.TAM' = 'blue'))
+
+
+dittoBarPlot(sobj_myeloid, "ident", group.by = "patient",
+             var.labels.reorder = c(2, 1),
+             x.reorder = c(23,65,91,8,66,64,47,31,33,16,
+                           95,63,29,34,94,60,32,80,87,50,
+                           96,2,71,103,69,30,42,19,61,81,
+                           98,45,56,55,39,85,62,13,18,84,
+                           101, 46, 5,25,1,40,97,58,4,89,
+                           17, 99,83,38,11, 35,7,70,28,24,
+                           15,78,88,27,59,14,57,10,
+                           41,48,77,6,37,26,82,68,72,54,100,12,44,49,76,
+                           36,90,74,93,86,51,102,9,67,79,
+                           73,3,92,20,75,22,52,43,53,21),
+             color.panel = c('Mo.TAM' = 'blue', 'Mg.TAM' = '#4daf4a'))
+
+
+
+
+
+#Fig 6C
+rm(list=ls())
+graphics.off()
+# library(pheatmap)
+library(ComplexHeatmap)
+library(RColorBrewer)
+
+
+#######@
+# https://glioblastoma.alleninstitute.org/api/v2/well_known_file_download/305873915
+path2ivya_exprs = "ivygap_all-2022.09.19/gene_expression_matrix_2014-11-25.zip"
+
+# https://glioblastoma.alleninstitute.org/api/v2/gbm/rna_seq_samples_details.csv
+path2ivya_rna_seq_samples_details = "ivygap_all-2022.09.19/rna_seq_samples_details.csv"
+
+#
+path2Supp_table = "yahaya/Yabo et al, Supplementary tables.xlsx"
+
+####### This code needs code of https://github.com/livnatje/ImmuneResistance
+# to calculate OE score
+# Download the code and change the path below
+path2immune_res_code = '~/pipeline/scRNASeq/ImmuneResistance/Code/'
+
+#######
+tmp = unzip(path2ivya_exprs)
+# zip contains : 
+#   fpkm_table.csv 
+#   columns-samples.csv
+#   rows-genes.csv
+stopifnot(file.exists("fpkm_table.csv"))
+stopifnot(file.exists("columns-samples.csv"))
+stopifnot(file.exists("rows-genes.csv"))
+
+## read fpkm
+ivygap_x = read.csv(
+  "fpkm_table.csv",header = T,row.names = 1,stringsAsFactors = F,check.names = F
+)
+ivygap_x = as.matrix(ivygap_x)
+dim(ivygap_x)
+range(ivygap_x)
+hist(rowMeans(log2(ivygap_x+1)))
+
+## read first meta
+ivygap_meta = read.csv(
+  "columns-samples.csv",header = T,stringsAsFactors = F,check.names = F
+)
+all(colnames(ivygap_x) == ivygap_meta$rna_well_id)
+rownames(ivygap_meta) = ivygap_meta$rna_well_id
+
+## read meta
+ivygap_meta2 = read.csv(
+  path2ivya_rna_seq_samples_details,header = T,stringsAsFactors = F,check.names = F
+)
+
+## merge 2 sample info
+dim(ivygap_meta2) #279  22
+dim(ivygap_meta)  #270  12
+
+table(ivygap_meta$rna_well_id %in% ivygap_meta2$sample_id)
+table(colnames(ivygap_x) %in% ivygap_meta2$sample_id)
+ivygap_meta2 = ivygap_meta2[ivygap_meta2$sample_id %in% ivygap_meta$rna_well_id,]
+ivygap_meta2 = ivygap_meta2[match(ivygap_meta$rna_well_id,ivygap_meta2$sample_id),]
+stopifnot(all(ivygap_meta$rna_well_id == ivygap_meta2$sample_id))
+
+common.cols = intersect(colnames(ivygap_meta),colnames(ivygap_meta2))
+names(common.cols) = common.cols
+stopifnot(all(sapply(common.cols, function(x) all(ivygap_meta[,x] == ivygap_meta2[,x]))))
+
+ivygap_meta = merge(
+  ivygap_meta,
+  ivygap_meta2[,setdiff(colnames(ivygap_meta2),common.cols)],
+  by.x = "rna_well_id", by.y = "sample_id"
+)
+rm(ivygap_meta2)
+rownames(ivygap_meta) = ivygap_meta$rna_well_id
+
+## aggragate region and simplified name
+ivygap_meta$structure_name_abbr = ivygap_meta$structure_name
+ivygap_meta$structure_name_abbr[grepl("^Cellular Tumor",ivygap_meta$structure_name_abbr)] = "Cellular Tumor"
+ivygap_meta$structure_name_abbr[grepl("^Hyperplastic blood vessels",ivygap_meta$structure_name_abbr)] = "HyBV"
+ivygap_meta$structure_name_abbr[grepl("^Infiltrating Tumor",ivygap_meta$structure_name_abbr)] = "Inf. Tumor"
+ivygap_meta$structure_name_abbr[grepl("^Leading Edge",ivygap_meta$structure_name_abbr)] = "LD Edge"
+ivygap_meta$structure_name_abbr[grepl("^Microvascular proliferation",ivygap_meta$structure_name_abbr)] = "MvP"
+ivygap_meta$structure_name_abbr[grepl("^Perinecrotic zone sampled",ivygap_meta$structure_name_abbr)] = "Perinecrotic"
+ivygap_meta$structure_name_abbr[grepl("^Pseudopalisading",ivygap_meta$structure_name_abbr)] = "Pseudopalisading"
+table(ivygap_meta$structure_name_abbr)
+
+# color for each region
+structure_name_abbr.cols = c(
+  "LD Edge" = "blue",
+  'Inf. Tumor'="purple",
+  "Cellular Tumor"="darkgreen",
+  Perinecrotic="lightblue",
+  Pseudopalisading="lightgreen",
+  HyBV ="orange",
+  MvP="red"
+)
+
+# order sample according to region, tumor_id and tumor_name
+ivygap_meta = ivygap_meta[
+  order(
+    match(ivygap_meta$structure_name_abbr,names(structure_name_abbr.cols)),
+    ivygap_meta$tumor_id,
+    ivygap_meta$tumor_name
+  ),
+]
+
+# same sample and order as in metadata
+ivygap_x = ivygap_x[,rownames(ivygap_meta)]
+range(ivygap_x)
+
+# simplify name of IVyGap study and set color for each
+ivygap_meta$study = ifelse(ivygap_meta$study_name == "Anatomic Structures RNA Seq","Anat. Str.",'CSC')
+study.cols = c("Anat. Str."="grey85",'CSC'="grey50")
+
+# gene annotation
+gns = read.csv(
+  "rows-genes.csv",header = T,stringsAsFactors = F,check.names = F
+)
+stopifnot(all(gns$gene_id == rownames(ivygap_x)))
+rownames(ivygap_x) = gns$gene_symbol
+
+file.remove(c("rows-genes.csv","columns-samples.csv","fpkm_table.csv","README.txt"))
+rm(gns)
+
+#########
+load("yahaya_gnsig.RData") # "unique_gene", "yahaya_gnsig_", "yahaya_gnsig" 
+
+cluster_signature_from_mo = readxl::read_xlsx(
+  path2Supp_table,
+  sheet = "Table S4",
+  skip  = 3,
+  col_names = T
+)
+cluster_signature_from_mo = cluster_signature_from_mo[,-1]
+cluster_signature_from_mo = cluster_signature_from_mo[-(1:5),]
+cluster_signature_from_mo = lapply(cluster_signature_from_mo, function(x) x[!is.na(x)])
+
+#### convert mouse to human gene names,
+## use file instead of biomart to avoid
+## 'unexpected server error'.
+mouse_human_genes = read.csv("http://www.informatics.jax.org/downloads/reports/HOM_MouseHumanSequence.rpt",sep="\t")
+mm_hs = split(mouse_human_genes,mouse_human_genes$DB.Class.Key)
+mm_hs = mm_hs[sapply(mm_hs,nrow)>1]
+table(sapply(mm_hs,function(x) sum(x[,"Common.Organism.Name"] == "mouse, laboratory")))
+mm_hs = mm_hs[sapply(mm_hs,function(x) sum(x[,"Common.Organism.Name"] == "mouse, laboratory"))==1]
+length(mm_hs) # 20124
+mm = sapply(mm_hs,function(x) x[x$Common.Organism.Name == "mouse, laboratory","Symbol"])
+hs = lapply(mm_hs,function(x) x[x$Common.Organism.Name == "human","Symbol"])
+mm_hs = data.frame(
+  mm = rep(mm,sapply(hs,length)),
+  hs = unlist(hs),
+  stringsAsFactors = F
+)
+rm(hs,mm,mouse_human_genes)
+# clean
+mm_hs = mm_hs[
+  mm_hs$hs %in% rownames(ivygap_x) & 
+    mm_hs$mm %in% unlist(cluster_signature_from_mo),
+]
+
+# manage duplicate, privilege to same symbol while different 'cases'
+ident = sapply(split(toupper(mm_hs$mm) == toupper(mm_hs$hs) ,mm_hs$mm),any)
+mm_hs$symbol = ifelse(
+  table(mm_hs$mm)[mm_hs$mm] > 1 & ident[mm_hs$mm],
+  toupper(mm_hs$mm),
+  mm_hs$hs
+)
+
+cluster_signature_from_mo_ = lapply(
+  cluster_signature_from_mo,
+  function(x){
+    unique(mm_hs$hs[mm_hs$mm %in% x])
+  }
+)
+cbind(
+  Mm = sapply(cluster_signature_from_mo,length),
+  Hs = sapply(cluster_signature_from_mo_,length)
+)
+# Mm  Hs
+# CL0  59  59 <<<
+# CL1  43  43 <<<
+# CL2  24  21 <<<
+# CL3 104  64 <<<
+# CL4 225 215 <<<
+# CL5 235 156 <<<
+# CL6 254 228 <<<
+# CL7 433 348 <<<
+# CL8  65  63 <<<
+cluster_signature_from_mo = cluster_signature_from_mo_
+rm(cluster_signature_from_mo_,mm_hs,ident)
+
+####### Calculate OE score
+wd = getwd()
+setwd(path2immune_res_code)
+source('ImmRes_source.R')
+setwd(wd)
+
+all.x = log2(ivygap_x+1)
+sc = list()
+sc$tpm = all.x[rowSums(all.x)  > 0,]
+sc$genes = rownames(sc$tpm)
+oe_score = get.OE.sc(sc,gene.sign = c(yahaya_gnsig_,cluster_signature_from_mo),num.rounds = 500)
+rownames(oe_score) = colnames(sc$tpm)
+oe_score = data.frame(oe_score)
+rm(sc)
+
+######## set colors
+molecular_subtype.cols = c(
+  "Classical" = "red",
+  "Classical, Mesenchymal"  = "blue",
+  "Classical, Neural" = "black",
+  "Proneural" = "purple",
+  "Neural" = "darkgreen",
+  "Neural, Proneural" = "grey",
+  "Mesenchymal" = "yellow",
+  "Mesenchymal, Neural" = "lightblue"
+)
+
+tumor.cols = rainbow(length(unique(ivygap_meta$tumor_name)))
+names(tumor.cols) = unique(ivygap_meta$tumor_name)
+
+########### Figure 5C
+col_annot = data.frame(
+  row.names = rownames(ivygap_meta),
+  Features = ivygap_meta$structure_name_abbr,
+  Study = ivygap_meta$study,
+  MolSubT = ivygap_meta$molecular_subtype,
+  stringsAsFactors = F
+)
+
+col_annot_col = list(
+  Features = structure_name_abbr.cols,
+  MolSubT  = molecular_subtype.cols,
+  Study = study.cols
+)
+
+colAnno = HeatmapAnnotation(
+  df = col_annot,
+  which="col",
+  col=col_annot_col,
+  show_legend = F
+)
+
+ComplexHeatmap::Heatmap(
+  t(
+    oe_score[,
+             c(
+               "Human.Mg","Human.Mo","CL0","CL1","CL2","CL3",
+               "CL4","CL5","CL6","CL7","CL8","Migration",
+               "Sensome","Phagocytosis","APC"
+             )
+    ]
+  ),
+  show_row_names  = T,
+  cluster_rows    = F,
+  # row_split = factor(ifelse(
+  #     rownames(all.x) %in% yahaya_gnsig$`Human Mg`,
+  #     "Human Mg","Human Mo"
+  # ),levels = c("Human Mg","Human Mo")),
+  # row_gap = unit(2,"mm"),
+  
+  cluster_columns = F,
+  show_column_names = F,
+  column_split = factor(
+    ivygap_meta$structure_name_abbr,
+    levels = names(structure_name_abbr.cols)
+  ),
+  column_gap = unit(2,"mm"),
+  
+  # col = c(
+  #     rev(brewer.pal(9,"Blues")[c(1:9)]),
+  #     "white",
+  #     brewer.pal(9,"Reds")[c(3:9)]
+  # ),
+  col = circlize::colorRamp2(c(-1.5, 0, 1.5), c("#3182bd", "white", "darkred")),
+  top_annotation = colAnno,
+  heatmap_legend_param = list(title="Z-score")
+)
+
+#Fig 6D and E
+
+
+library(SPATA2)
+library(tidyverse)
+library(Seurat)
+library(tidyverse)
+
+# Import the myeloid signatures and the reference dataset from verhaak
+pan_glioma <- readRDS("~/Desktop/ImmunoSpatial/PanGlioma/Seurat_panglioma.RDS")
+
+# Isolate Myeloid cells and subcluster
+pan_glioma@meta.data %>% as.data.frame() %>% pull(cell_state) %>% unique()
+myeloid <- pan_glioma@meta.data %>% as.data.frame() %>% filter(cell_state=="Myeloid") %>% rownames()
+
+#Isolate object
+myeloid <- subset(pan_glioma, cells=myeloid)
+myeloid <- myeloid %>% Seurat::DietSeurat()
+
+# Horizontal integration by MNN
+myeloid <- SeuratWrappers::RunFastMNN(Seurat::SplitObject(myeloid, split.by = "sampleid"))
+
+#QC
+myeloid[["percent.mt"]] <- PercentageFeatureSet(myeloid, pattern = "^MT-")
+myeloid[["percent.RB"]] <- PercentageFeatureSet(myeloid, pattern = "^RPS")
+
+VlnPlot(myeloid, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+
+#Remove Mitochondrial and Stress genes
+exclude=c(rownames(myeloid@assays$RNA)[grepl("^RPL", rownames(myeloid@assays$RNA))],
+          rownames(myeloid@assays$RNA)[grepl("^RPS", rownames(myeloid@assays$RNA))],
+          rownames(myeloid@assays$RNA)[grepl("^MT-", rownames(myeloid@assays$RNA))],
+          c('JUN','FOS','ZFP36','ATF3','HSPA1A","HSPA1B','DUSP1','EGR1','MALAT1'))
+
+# @Method and genes from Sankowski et al., Nat Neuroscience
+
+feat_keep=rownames(myeloid@assays$RNA[!(rownames(myeloid@assays$RNA) %in% exclude), ])
+myeloid=subset(myeloid, features=feat_keep)
+
+# PostProcessing
+myeloid <- 
+  myeloid %>% 
+  Seurat::SCTransform(vars.to.regress = c("percent.mt"), return.only.var.genes = F)
+
+myeloid <- Seurat::FindNeighbors(myeloid, reduction="mnn")
+
+# Find optimal clusters
+myeloid <- SPATAwrappers::run.SNN.stability(myeloid,reduction = "mnn", assay="RNA")
+myeloid <- Seurat::RunUMAP(myeloid, dims=1:20, reduction="mnn")
+DimPlot(myeloid)
+
+
+# Read in LUX myeliod file:
+setwd("~/Desktop/Single_cell/Luxenburg")
+myeloid_lux <- readRDS("myeloid_object.rds")
+DimPlot(myeloid_lux, group.by = "New_names")
+
+FeaturePlot(myeloid_lux, feature="B2m")
+
 library(dplyr)
-library(CellChat)
+mouse_human_genes = read.csv("http://www.informatics.jax.org/downloads/reports/HOM_MouseHumanSequence.rpt",sep="\t")
+
+human.only <- 
+  mouse_human_genes %>% 
+  dplyr::select(DB.Class.Key,Common.Organism.Name, Symbol) %>% 
+  filter(Common.Organism.Name=="human") %>% 
+  rename("human":=Symbol)
+
+mice.only <- 
+  mouse_human_genes %>% 
+  dplyr::select(DB.Class.Key,Common.Organism.Name, Symbol) %>% 
+  filter(Common.Organism.Name=='mouse, laboratory') %>% 
+  rename("mice":=Symbol)
+
+genes_mice <-data.frame(mice=myeloid_lux@assays$RNA@scale.data %>% rownames())
+genes_mice <- genes_mice %>% left_join(., mice.only, by="mice") %>% dplyr::select(mice, DB.Class.Key)
+
+#add human
+genes_mice <- genes_mice %>% left_join(.,human.only, by="DB.Class.Key" ) %>% dplyr::select(mice, human)
+
+#Remove all genes that are not match
+genes_mice <- genes_mice %>% filter(!is.na(human))
+
+mat <- myeloid_lux@assays$RNA@counts %>% as.matrix()
+mat <- mat[genes_mice$mice,]
+rownames(mat) <- genes_mice$human
+RNA <- Seurat::CreateAssayObject(mat)
+
+new <- CreateSeuratObject(RNA)
+new@meta.data <- myeloid_lux@meta.data
+
+new[["percent.mt"]] <- PercentageFeatureSet(new, pattern = "^MT-")
+new[["percent.RB"]] <- PercentageFeatureSet(new, pattern = "^RPS")
+new <- Seurat::SCTransform(new,vars.to.regress = c("percent.mt"), return.only.var.genes = F)
+
+new@reductions <- myeloid_lux@reductions
+DimPlot(new, group.by = "New_names")
 
 
-# load P3 CTR and TMZ treated tumor cells
+#Integrate to human reference
 
-P3_CTR_TMZ_tumor <- readRDS("~/P3_CTR_TMZ_tumor.rds")
-
-DimPlot(P3_CTR_TMZ_tumor, group.by =  "orig.ident", pt.size = 1,  cols = c("P3CTR" = "black" , 'P3TMZ' = 'red'))
-
-
-
-#6f
-
-# reference mapping to add P3TMZ to the myeloid subset
-
-myeloid.reference <- SCTransform(Myeloid_subset, verbose = FALSE)
-myeloid.query <- SCTransform(P3TMZ_TME, verbose = FALSE)
+myeloid@active.assay <- "SCT"
+myeloid <- FindNeighbors(myeloid, reduction = "mnn")
+myeloid <- myeloid %>% RunPCA()
 
 
 anchors <- FindTransferAnchors(
-  reference = myeloid.reference,
-  query = myeloid.query,
+  reference = myeloid,
+  query = new,
   normalization.method = "SCT",
   reference.reduction = "pca",
-  dims = 1:20
+  dims = 1:30
 )
 
-predictions <- TransferData(anchorset = anchors, refdata = myeloid.reference$New_names, dims = 1:20)
 
-myeloid.reference <- RunUMAP(myeloid.reference, dims = 1:20, reduction = "pca", return.model = TRUE)
+myeloid <- myeloid %>% RunUMAP(reduction="mnn", dims=1:30,return.model=T)
+DimPlot(myeloid, reduction = "umap")
 
-
-Myeloid_mapped <- MapQuery(
+map <- MapQuery(
   anchorset = anchors,
-  query = myeloid.query,
-  reference = myeloid.reference,
-  refdata = list(celltype = "New_names"), reference.reduction = "pca", reduction.model = "umap")
+  query = new,
+  reference = myeloid,
+  refdata = list(
+    new = "new"
+  ),
+  reference.reduction = "pca", 
+  reduction.model = "umap"
+)
+
+DimPlot(map, group.by = "New_names", reduction = "ref.umap")
 
 
+# From Markers
 
-CTR <- subset(Myeloid_subset, subset = sample == "P3CTR")
+marker_verh <- Seurat::FindAllMarkers(myeloid, 
+                                      logfc.threshold = 0.5, 
+                                      min.pct = 0.4, 
+                                      min.cells.group = 100, 
+                                      densify=T)
+marker_verh_order <- marker_verh %>% group_by(cluster) %>% top_n(200, wt="avg_log2FC")
 
-P3.merged <- merge(CTR, y= Myeloid_mapped, project = "TMZ")
-
-### stack chart of myeloid clusters in P3 TMZ and CTR
-
-dittoBarPlot(P3.merged,"New_names", group.by = "sample", 
-             var.labels.reorder = c(8, 7, 6, 5, 4, 3, 2, 1),
-             color.panel = c('CL8'= "#e31a1c",'CL7'= "blue",'CL6' = "#7F6000", 
-                             'CL5'= "#F08C06",'CL4'= "#FFD966", 'CL3'= "#99B953", 
-                             'CL2' = "#9EF57B",'CL1'= "#2CAA0E",'CL0'= "#22830B")) +
-  theme(text = element_text(size = 16))
-
-
-#6g
-
-DotPlot(P3.merged, features = c("APCs_score", "Phagocytosis_score", "Sensome_score", "Migration_score"), col.min = -2,
-        col.max = 2, split.by = "sample", group.by = "Clusters", scale = TRUE, dot.scale = 10, cols = c("#3182bd","red")) +   
-  RotatedAxis()+coord_flip()
+# Compare the Luxenburg cluster with the myeloid subclustering
+setwd("~/Desktop/Single_cell/Luxenburg")
+marker_lux <- read.csv("Myeloid_cluster markers.csv", sep=";")
+marker_lux <- marker_lux %>% filter(human.genes!="")
 
 
-#6h, i, j and k
+# 1. Compare by jaccard-Index
 
-# this analysis was done following the CellChat vignette with some modifications https://htmlpreview.github.io/?https://github.com/sqjin/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets.html
+LX <- paste0("LX_", unique(marker_lux$cluster))
+VER <- paste0("Verhaak_", unique(marker_verh$cluster))
+Cor_mat <- matrix(0, nrow=length(LX), ncol=length(VER))
+rownames(Cor_mat) <- VER; colnames(Cor_mat) <- LX
 
-
-library(NMF)
-library(ggalluvial)
-library(ComplexHeatmap)
-library(nichenetr)
-library(ggplot2)                  
-library(patchwork)
-library(igraph)
-
-#convert human genes to mouse in P3 tumor object
-
-#P3CTR_tumor
-P3CTR_tumor_count_matrix <- as.matrix(P3CTR_tumor@assays$RNA@counts)
-rownames(P3CTR_tumor_count_matrix) = rownames(P3CTR_tumor_count_matrix) %>% convert_human_to_mouse_symbols() 
-P3CTR_tumor_count_matrix = P3CTR_tumor_count_matrix %>% .[!is.na(rownames(P3CTR_tumor_count_matrix)), !is.na(colnames(P3CTR_tumor_count_matrix))]
-P3CTR_tumor <- CreateSeuratObject(counts = P3CTR_tumor_count_matrix, project = "P3CTR_tumor")
-
-#P3TMZ_tumor
-P3TMZ_tumor_count_matrix <- as.matrix(P3TMZ_tumor@assays$RNA@counts)
-rownames(P3TMZ_tumor_count_matrix) = rownames(P3TMZ_tumor_count_matrix) %>% convert_human_to_mouse_symbols() 
-P3TMZ_tumor_count_matrix = P3TMZ_tumor_count_matrix %>% .[!is.na(rownames(P3TMZ_tumor_count_matrix)), !is.na(colnames(P3TMZ_tumor_count_matrix))]
-P3TMZ_tumor <- CreateSeuratObject(counts = P3TMZ_tumor_count_matrix, project = "P3TMZ_tumor")
-
-
-#merge tumor and TME data
-
-P3CTR.full <- merge(P3CTR_TME, y= P3CTR_tumor, add.cell.ids = c("P3CTR_TME", "P3CTR_tumor"), project = "P3CTR.combined", merge.data = TRUE)
-P3TMZ.full <- merge(P3TMZ_TME, y= P3TMZ_tumor, add.cell.ids = c("P3TMZ_TME", "P3TMZ_tumor"), project = "P3TMZ.combined", merge.data = TRUE)
-
-# P3CTR tumor and TME
-### change gene names to standard names with "-" instead of with "."
-VlnPlot(P3CTR.full, features = "H2.Aa")
-which(P3CTR.full@assays$RNA@data@Dimnames[[1]] == "H2.Aa")
-P3CTR.full@assays$RNA@data@Dimnames[[1]] <- sub('\\.','-', P3CTR.full@assays$RNA@data@Dimnames[[1]])
-VlnPlot(P3CTR.full, features = "H2-Aa")
-which(P3CTR.full@assays$RNA@data@Dimnames[[1]] == "H2-Aa")
-
-#Extract the CellChat input files from a Seurat object
-
-data.input <- GetAssayData(P3CTR.full, assay = "RNA", slot = "data") # normalized data matrix
-Idents(P3CTR.full) <- "celltypes"
-labels <- Idents(P3CTR.full)
-meta <- data.frame(group = labels, row.names = names(labels)) # create a dataframe of the cell labels
-
-#Extract the CellChat input files from a Seurat object
-cellchat.obj <- createCellChat(object = P3CTR.full, meta = meta, group.by = "group")
-
-
-#Set the ligand-receptor interaction database        
-CellChatDB  <- CellChatDB.mouse
-showDatabaseCategory(CellChatDB)
-# Show the structure of the database
-dplyr::glimpse(CellChatDB$interaction)
-
-
-# use all CellChatDB for cell-cell communication analysis
-CellChatDB.use <- CellChatDB # simply use the default CellChatDB
-
-# set the used database in the object
-cellchat.obj@DB <- CellChatDB.use
-
-#Preprocessing the expression data for cell-cell communication analysis
-
-# subset the expression data of signaling genes for saving computation cost
-cellchat <- subsetData(cellchat.obj)
-
-cellchat <- identifyOverExpressedGenes(cellchat)
-cellchat <- identifyOverExpressedInteractions(cellchat)
-
-# project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
-cellchat <- projectData(cellchat, PPI.mouse)
-
-#Compute the communication probability and infer cellular communication network
-cellchat <- computeCommunProb(cellchat, raw.use = FALSE)
-
-# Filter out the cell-cell communication if there are only few number of cells in certain cell groups
-cellchat <- filterCommunication(cellchat, min.cells = 0)
-
-#Infer the cell-cell communication at a signaling pathway level
-cellchat <- computeCommunProbPathway(cellchat)
-
-#Calculate the aggregated cell-cell communication network
-
-cellchat <- aggregateNet(cellchat)
-
-groupSize <- as.numeric(table(cellchat@idents))
-par(mfrow = c(1,2), xpd=TRUE)
-netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
-netVisual_circle(cellchat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
-
-#Due to the complicated cell-cell communication network, we can examine the signaling sent from each cell group. 
-#Here we also control the parameter edge.weight.max so that we can compare edge weights between differet networks.
-
-mat <- cellchat@net$weight
-par(mfrow = c(3,4), xpd=TRUE)
-for (i in 1:nrow(mat)) {
-  mat2 <- matrix(0, nrow = nrow(mat), ncol = ncol(mat), dimnames = dimnames(mat))
-  mat2[i, ] <- mat[i, ]
-  netVisual_circle(mat2, vertex.weight = groupSize, weight.scale = T, edge.weight.max = max(mat), title.name = rownames(mat)[i])
+for(i in 1:length(VER)){
+  for(j in 1:length(LX)){
+    
+    Cor_mat[VER[i], LX[j]] <- 
+      SPATAwrappers::jaccard(
+        marker_lux %>% filter(cluster==unique(marker_lux$cluster)[j]) %>% pull(human.genes),
+        marker_verh_order %>% filter(cluster==unique(marker_verh_order$cluster)[i]) %>% pull(gene)
+      )
+    
+    
+  }
 }
-
-#Visualize each signaling pathway using Hierarchy plot, Circle plot or Chord diagram
-
-pathways.show <- c("GAS") 
-# Hierarchy plot
-vertex.receiver = seq(1,4) # a numeric vector. 
-netVisual_aggregate(cellchat, signaling = pathways.show,  vertex.receiver = vertex.receiver)
-# Circle plot
-par(mfrow=c(1,1))
-netVisual_aggregate(cellchat, signaling = pathways.show, layout = "circle")
-
-# Chord diagram
-par(mfrow=c(1,1))
-netVisual_aggregate(cellchat, signaling = pathways.show, layout = "chord")
-
-# Heatmap
-par(mfrow=c(1,1))
-netVisual_heatmap(cellchat, signaling = pathways.show, color.heatmap = "Reds")
+corrplot::corrplot(Cor_mat, is.corr = F, order = "hclust")
 
 
-netAnalysis_contribution(cellchat, signaling = pathways.show)
+# 2. Compare by Gene expression
 
+LX <- paste0("LX_", unique(marker_lux$cluster))
+VER <- paste0("Verhaak_", unique(marker_verh$cluster))
+Cor_mat <- matrix(0, nrow=length(LX), ncol=length(VER))
+rownames(Cor_mat) <- VER; colnames(Cor_mat) <- LX
 
-# show all the significant interactions (L-R pairs) from some cell groups (defined by 'sources.use') to other cell groups (defined by 'targets.use')
-netVisual_bubble(cellchat, sources.use = 2, targets.use = c(1:10), remove.isolate = FALSE)
-netVisual_bubble(cellchat, sources.use = 10, targets.use = c(1:9), remove.isolate = FALSE)
-
-
-# Compute the network centrality scores
-cellchat <- netAnalysis_computeCentrality(cellchat, slot.name = "netP") # the slot 'netP' means the inferred intercellular communication network of signaling pathways
-
-# Visualize the computed centrality scores using heatmap, allowing ready identification of major signaling roles of cell groups
-netAnalysis_signalingRole_network(cellchat, signaling = pathways.show, width = 8, height = 2.5, font.size = 10)
-gg1 <- netAnalysis_signalingRole_scatter(cellchat)
-gg1
-
-cellchat.CTR <- cellchat
-
-
-# Circle plot
-netVisual_individual(cellchat.CTR, signaling = pathways.show, pairLR.use = LR.show, layout = "chord")
-
-# P3TMZ tumor and TME
-### change gene names to standard names with "-" instead of with "."
-VlnPlot(P3TMZ.full, features = "H2.Aa")
-which(P3TMZ.full@assays$RNA@data@Dimnames[[1]] == "H2.Aa")
-P3TMZ.full@assays$RNA@data@Dimnames[[1]] <- sub('\\.','-', P3TMZ.full@assays$RNA@data@Dimnames[[1]])
-VlnPlot(P3TMZ.full, features = "H2-Aa")
-which(P3TMZ.full@assays$RNA@data@Dimnames[[1]] == "H2-Aa")
-
-#Extract the CellChat input files from a Seurat object
-
-data.input <- GetAssayData(P3TMZ.full, assay = "RNA", slot = "data") # normalized data matrix
-Idents(P3TMZ.full) <- "celltypes"
-labels <- Idents(P3TMZ.full)
-meta <- data.frame(group = labels, row.names = names(labels)) # create a dataframe of the cell labels
-
-
-#Create a CellChat object using data matrix as input
-
-cellchat.obj <- createCellChat(object = P3TMZ.full, meta = meta, group.by = "group")
-
-groupSize <- as.numeric(table(cellchat.obj@idents)) # number of cells in each cell group
-
-
-#Set the ligand-receptor interaction database        
-CellChatDB  <- CellChatDB.mouse
-showDatabaseCategory(CellChatDB)
-# Show the structure of the database
-dplyr::glimpse(CellChatDB$interaction)
-
-# use all CellChatDB for cell-cell communication analysis
-CellChatDB.use <- CellChatDB # simply use the default CellChatDB
-
-# set the used database in the object
-cellchat.obj@DB <- CellChatDB.use
-
-#Preprocessing the expression data for cell-cell communication analysis
-
-# subset the expression data of signaling genes for saving computation cost
-cellchat <- subsetData(cellchat.obj)
-
-
-cellchat <- identifyOverExpressedGenes(cellchat)
-cellchat <- identifyOverExpressedInteractions(cellchat)
-
-# project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
-cellchat <- projectData(cellchat, PPI.mouse)
-
-#Compute the communication probability and infer cellular communication network
-cellchat <- computeCommunProb(cellchat, raw.use = FALSE)
-
-# Filter out the cell-cell communication if there are only few number of cells in certain cell groups
-cellchat <- filterCommunication(cellchat, min.cells = 0)
-
-#Infer the cell-cell communication at a signaling pathway level
-cellchat <- computeCommunProbPathway(cellchat)
-
-#Calculate the aggregated cell-cell communication network
-cellchat <- aggregateNet(cellchat)
-
-groupSize <- as.numeric(table(cellchat@idents))
-par(mfrow = c(1,2), xpd=TRUE)
-netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
-netVisual_circle(cellchat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
-
-#Due to the complicated cell-cell communication network, we can examine the signaling sent from each cell group. 
-#Here we also control the parameter edge.weight.max so that we can compare edge weights between different networks.
-
-mat <- cellchat@net$weight
-par(mfrow = c(3,4), xpd=TRUE)
-for (i in 1:nrow(mat)) {
-  mat2 <- matrix(0, nrow = nrow(mat), ncol = ncol(mat), dimnames = dimnames(mat))
-  mat2[i, ] <- mat[i, ]
-  netVisual_circle(mat2, vertex.weight = groupSize, weight.scale = T, edge.weight.max = max(mat), title.name = rownames(mat)[i])
+for(i in 1:length(VER)){
+  for(j in 1:length(LX)){
+    
+    genes <- marker_lux %>% filter(cluster==unique(marker_lux$cluster)[j]) %>% pull(human.genes)
+    mat.exp <- Seurat::GetAssayData(myeloid)
+    sub <- mat.exp[rownames(mat.exp) %in% genes, ] %>% colMeans() %>% as.data.frame()
+    cells <- myeloid@meta.data %>% as.data.frame() %>% filter(new==unique(marker_verh$cluster)[i]) %>% rownames()
+    Cor_mat[VER[i], LX[j]] <- sub[cells, ] %>% mean()
+    
+    
+    
+  }
 }
+corrplot::corrplot(Cor_mat, is.corr = F, order = "hclust")
+
+
+
+# Add myeloid subgroups to pan glioma
+names <- marker_verh %>% group_by(cluster) %>% top_n(20, wt=avg_log2FC)
+cluster_names <- data.frame(new=unique(names$cluster),
+                            names=c("CX3CR1_pos","Inflammatory_Microglia","Homeostasis", "Monocytes", "Stress_induced","M1","NOS_1", "Hypoxia_induced", "M1" ))
+
+
+myeloid_def <- myeloid@meta.data %>% as.data.frame() %>% rownames_to_column("barcodes") %>% left_join(., cluster_names, "new") %>% dplyr::select(barcodes,new, names)
+myeloid@meta.data$cell_type <- myeloid_def$names
+
+DimPlot(myeloid, group.by = "cell_type", label = T, raster=T, reduction="umap")+scale_color_manual(values = colorRampPalette(RColorBrewer::brewer.pal(12,"Set3"))(8))
+
+
+pan_glioma@meta.data[myeloid_def$barcodes, ]$cell_state <- myeloid_def$names
+DimPlot(pan_glioma, group.by = "cell_state", label = T, raster=T)+scale_color_manual(values = colorRampPalette(RColorBrewer::brewer.pal(12,"Set3"))(20))
+
+
+
+# Import the SPATA datasets
+
+path_visium=("~/Desktop/SpatialTranscriptomics/Visium/Visium")
+setwd(path_visium)
+meta.st <- read.csv( "feat.csv", sep=";")
+
+setwd("~/Desktop/SpatialTranscriptomics/Visium/Visium/CancerCell_Revision/Modules_WT")
+obj.wt <- meta.st %>% filter(Region=="T") %>% filter(Tumor=="IDH-WT") %>% pull(files) %>% unique()
+obj.wt <-data.frame(files=obj.wt, 
+                    path=paste0("~/Desktop/SpatialTranscriptomics/Visium/Visium/All_SPATA_Revisions/", "Revision_",obj.wt,"_SPATA_CNV_Pred.RDS"),
+                    imh.hrs=paste0("~/Desktop/SpatialTranscriptomics/Visium/Visium/",obj.wt,"/outs/spatial/tissue_hires_image.png"))
+obj.wt$Seuratstep1=NA
+
+setwd("~/Desktop/Single_cell/Luxenburg")
+
+#Create GeneSet from marker genes (top 50)
+marker_gs <- 
+  marker_lux %>% 
+  group_by(cluster) %>% 
+  top_n(n=100, wt=avg_log2FC) %>% 
+  ungroup() %>% 
+  dplyr::select(cluster, human.genes)
+
+names(marker_gs) <- c("ont", "gene")
+
+# Filter to genes that are in SPATA
+marker_gs %>% group_by(ont) %>% summarise(sum=length(ont))
+
+# Import functional signatures
+func_sig <- read.csv("functional signatures.csv", sep=";")
+gs_funk_sig <- map_dfr(.x=1:ncol(func_sig), .f=function(i){
+  data.frame(ont=names(func_sig)[i], gene= func_sig %>% dplyr::select(!!sym(names(func_sig)[i])) %>% filter(!!sym(names(func_sig)[i])!="") %>% pull(!!sym(names(func_sig)[i])) )
+})
+
+
+
+CCA_matrix <- 
+  map(.x=1:5, .f=function(i){
+    
+    spata <- readRDS(obj.wt$path[i])
+    samples=getSampleNames(spata)
+    names(spata@fdata[[samples]])
+    
+    
+    #spata@used_genesets <- rbind(gs.all , marker_gs, gs_funk_sig)
+    
+    
+    
+    #plot some clusters
+    #col <- colorRampPalette(rev(RColorBrewer::brewer.pal(9,"Spectral")))
+    
+    #color.pram <- unique(marker_gs$ont)[1]
+    #plotSurface(spata, color_by = color.pram, alpha_by = color.pram, display_image = T, smooth = T) +
+    #  scale_colour_gradientn(colours = col(50), oob = scales::squish, limit=c(0.6, 1))
+    
+    #plotSurfaceComparison(spata, color_by = unique(marker_gs$ont), display_image = F, smooth = T) +
+    #  scale_colour_gradientn(colours = col(50), oob = scales::squish, limit=c(0.4, 1))
+    
+    
+    
+    
+    
+    #Run myeloid subtype analysis
+    
+    
+    # Get CCA correlation of all clusters 
+    gs <- c("MILO_A1","MILO_A2" ,"MILO_fetal", "MILO_adult",
+            "Verhaak_Classical","Verhaak_Mesenchymal","Verhaak_Proneural","Verhaak_Neural",
+            "Neftel_MESlike2","Neftel_MESlike1","Neftel_AClike","Neftel_OPClike","Neftel_NPClike1","Neftel_NPClike2",
+            "Module_consensus_1","Module_consensus_2","Module_consensus_4","Module_consensus_3","Module_consensus_5",
+            "Developmental", "Injury_Response")
+    
+    
+    subgroups <- factor(c("Stem-like","Diff.-like","Stress_induced","Prolif. stem-like","Oligodendrocyte","Monocytes","Granulocyte","Inflammatory_Microglia",
+                          "T cell","Endothelial","M1","Dendritic cell","CX3CR1_pos","Fibroblast","Homeostasis","Pericyte","B cell","Hypoxia_induced", "NOS_1") %>% 
+                          str_replace_all(., "-", "_") %>% 
+                          str_replace_all(., " ", "_"), levels = c("Prolif. stem-like","Stem-like", "Diff.-like",
+                                                                   "T cell","B cell","Dendritic cell",
+                                                                   "Homeostasis","Inflammatory_Microglia","CX3CR1_pos","Hypoxia_induced","Stress_induced","M1","Monocytes","NOS_1",
+                                                                   "Granulocyte","Endothelial","Fibroblast","Oligodendrocyte","Pericyte") %>% 
+                          str_replace_all(., "-", "_") %>% 
+                          str_replace_all(., " ", "_"))
+    samples=getSampleNames(spata)
+    message(paste0("Run CCA Analysis: ", samples))
+    
+    feat <- c(as.character(subgroups),
+              gs,
+              unique(marker_gs$ont),
+              unique(gs_funk_sig$ont))
+    
+    mat.cor <- SPATAImmune::getSpatialRegression(spata, 
+                                                 features = feat,
+                                                 model = "CCA")
+    
+    return(mat.cor)
+    
+    
+    
+  })
 
-#Visualize each signaling pathway using Hierarchy plot, Circle plot or Chord diagram
 
-pathways.show <- c("CSF") 
-# Hierarchy plot
-# Here we define `vertex.receive` so that the left portion of the hierarchy plot shows signaling to fibroblast and the right portion shows signaling to immune cells 
-vertex.receiver = seq(1,4) # a numeric vector. 
-netVisual_aggregate(cellchat, signaling = pathways.show,  vertex.receiver = vertex.receiver)
-# Circle plot
-par(mfrow=c(1,1))
-netVisual_aggregate(cellchat, signaling = pathways.show, layout = "circle")
 
-# Chord diagram
-par(mfrow=c(1,1))
-netVisual_aggregate(cellchat, signaling = pathways.show, layout = "chord")
+cca.matrix <- Reduce(`+`, CCA_matrix) / length(CCA_matrix)
 
-# Heatmap
-par(mfrow=c(1,1))
-netVisual_heatmap(cellchat, signaling = pathways.show, color.heatmap = "Reds")
-#> Do heatmap based on a single object
 
-netAnalysis_contribution(cellchat, signaling = pathways.show)
+corrplot::corrplot(cca.matrix[c("Homeostasis","Inflammatory_Microglia","CX3CR1_pos","Hypoxia_induced","Stress_induced","M1","Monocytes","NOS_1"), 
+                              unique(marker_gs$ont)], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Reds")))(50))
 
 
-# show all the significant interactions (L-R pairs) from some cell groups (defined by 'sources.use') to other cell groups (defined by 'targets.use')
-netVisual_bubble(cellchat, sources.use = 1, targets.use = c(2:9), remove.isolate = FALSE)
-netVisual_bubble(cellchat, sources.use = 9, targets.use = c(1:8), remove.isolate = FALSE)
+pram=c("Prolif._stem_like","Stem_like", "Diff._like")
 
+corrplot::corrplot(cca.matrix[pram, 
+                              unique(marker_gs$ont)], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Greens")))(50))
 
-#Compute and visualize the network centrality scores
+corrplot::corrplot(cca.matrix[pram, 
+                              c("Homeostasis","Inflammatory_Microglia","CX3CR1_pos","Hypoxia_induced","Stress_induced","M1","Monocytes","NOS_1")], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Greens")))(50))
 
-# Compute the network centrality scores
-cellchat <- netAnalysis_computeCentrality(cellchat, slot.name = "netP") # the slot 'netP' means the inferred intercellular communication network of signaling pathways
-# Visualize the computed centrality scores using heatmap, allowing ready identification of major signaling roles of cell groups
-netAnalysis_signalingRole_network(cellchat, signaling = pathways.show, width = 8, height = 2.5, font.size = 10)
-gg1 <- netAnalysis_signalingRole_scatter(cellchat)
-gg1
+pram=c("T_cell","B_cell","Dendritic_cell",
+       "Granulocyte","Endothelial","Fibroblast","Oligodendrocyte","Pericyte")
 
+corrplot::corrplot(cca.matrix[pram, 
+                              unique(marker_gs$ont)], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Oranges")))(50))
 
-cellchat.TMZ <- cellchat
+corrplot::corrplot(cca.matrix[pram, 
+                              c("Homeostasis","Inflammatory_Microglia","CX3CR1_pos","Hypoxia_induced","Stress_induced","M1","Monocytes","NOS_1")], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Oranges")))(50))
 
 
-# merge the 2 cell chat objects for comparison
 
-#Lift up CellChat object and merge together
+pram=c("Module_consensus_1","Module_consensus_2","Module_consensus_4","Module_consensus_3","Module_consensus_5")
 
-# Define the cell labels to lift up
+corrplot::corrplot(cca.matrix[pram, 
+                              unique(marker_gs$ont)], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Blues")))(50))
 
-group.new = levels(cellchat.CTR@idents)
-cellchat.TMZ <- liftCellChat(cellchat.TMZ, group.new)
+corrplot::corrplot(cca.matrix[pram, 
+                              c("Homeostasis","Inflammatory_Microglia","CX3CR1_pos","Hypoxia_induced","Stress_induced","M1","Monocytes","NOS_1")], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Blues")))(50))
 
 
-cellchat.CTR <- netAnalysis_computeCentrality(cellchat.CTR)
-cellchat.TMZ <- netAnalysis_computeCentrality(cellchat.TMZ)
+pram=c("Neftel_MESlike2","Neftel_MESlike1","Neftel_AClike","Neftel_OPClike","Neftel_NPClike1","Neftel_NPClike2")
 
-object.list <- list(CTR = cellchat.CTR, TMZ = cellchat.TMZ)
+corrplot::corrplot(cca.matrix[pram, 
+                              unique(marker_gs$ont)], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Purples")))(50))
 
+corrplot::corrplot(cca.matrix[pram, 
+                              c("Homeostasis","Inflammatory_Microglia","CX3CR1_pos","Hypoxia_induced","Stress_induced","M1","Monocytes","NOS_1")], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Purples")))(50))
 
-cellchat <- mergeCellChat(object.list, add.names = names(object.list), cell.prefix = TRUE)
+pram=c("Microglia", "Macrophages", "Homeostatic.microglia",    "Sensome",  "Migration","APC", "Phagocytosis")
 
+corrplot::corrplot(cca.matrix[pram, 
+                              unique(marker_gs$ont)], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Greys")))(50))
 
-#### Part I: Predict general principles of cell-cell communication ###
+corrplot::corrplot(cca.matrix[pram, 
+                              c("Homeostasis","Inflammatory_Microglia","CX3CR1_pos","Hypoxia_induced","Stress_induced","M1","Monocytes","NOS_1")], is.corr = F,
+                   col=colorRampPalette((RColorBrewer::brewer.pal(9,"Greys")))(50))
 
-# Compare the total number of interactions and interaction strength  
 
-gg1 <- compareInteractions(cellchat, show.legend = F, group = c(1,2))
-gg2 <- compareInteractions(cellchat, show.legend = F, group = c(1,2), measure = "weight")
-gg1 + gg2
 
+spata <- readRDS(obj.wt$path[1])
+plotSurfaceInteractive(spata)
 
-#The differential number of interactions or interaction strength in the cell-cell communication network between two datasets
-par(mfrow = c(1,2), xpd=TRUE)
-netVisual_diffInteraction(cellchat, weight.scale = T)
-netVisual_diffInteraction(cellchat, weight.scale = T, measure = "weight")
+pram=c("Microglia", "Macrophages", "Homeostatic.microglia",    "Sensome",  "Migration","APC", "Phagocytosis")
 
+plotSurfaceComparison(spata, color_by = pram)
 
-gg1 <- netVisual_heatmap(cellchat)
-#> Do heatmap based on a merged object
-gg2 <- netVisual_heatmap(cellchat, measure = "weight")
-#> Do heatmap based on a merged object
-gg1 + gg2
 
 
-weight.max <- getMaxWeight(object.list, attribute = c("idents","count"))
-par(mfrow = c(1,2), xpd=TRUE)
-for (i in 1:length(object.list)) {
-  netVisual_circle(object.list[[i]]@net$count, weight.scale = T, label.edge= F, edge.weight.max = weight.max[2], edge.width.max = 12, title.name = paste0("Number of interactions - ", names(object.list)[i]))
-}
 
-
-num.link <- sapply(object.list, function(x) {rowSums(x@net$count) + colSums(x@net$count)-diag(x@net$count)})
-weight.MinMax <- c(min(num.link), max(num.link)) # control the dot size in the different datasets
-gg <- list()
-for (i in 1:length(object.list)) {
-  gg[[i]] <- netAnalysis_signalingRole_scatter(object.list[[i]], title = names(object.list)[i], weight.MinMax = weight.MinMax)
-}
-
-patchwork::wrap_plots(plots = gg)
-
-
-gg1 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "Myeloid")
-
-gg2 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "Tumor")
-
-patchwork::wrap_plots(plots = list(gg1,gg2))
-
-#Part II: Identify the conserved and context-specific signaling pathways
-
-cellchat <- computeNetSimilarityPairwise(cellchat, type = "functional")
-
-cellchat <- netEmbedding(cellchat, type = "functional")
-
-cellchat <- netClustering(cellchat, type = "functional")
-
-netVisual_embeddingPairwise(cellchat, type = "functional", label.size = 3.5)
-
-#Compare the overall information flow of each signaling pathway
-
-gg1 <- rankNet(cellchat, mode = "comparison", stacked = T, do.stat = TRUE)
-gg2 <- rankNet(cellchat, mode = "comparison", stacked = F, do.stat = TRUE)
-gg1 + gg2
-
-
-i = 1
-# combining all the identified signaling pathways from different datasets 
-pathway.union <- union(object.list[[i]]@netP$pathways, object.list[[i+1]]@netP$pathways)
-ht1 = netAnalysis_signalingRole_heatmap(object.list[[i]], pattern = "outgoing", signaling = pathway.union, title = names(object.list)[i], width = 9, height = 13)
-ht2 = netAnalysis_signalingRole_heatmap(object.list[[i+1]], pattern = "outgoing", signaling = pathway.union, title = names(object.list)[i+1], width = 9, height = 13)
-draw(ht1 + ht2, ht_gap = unit(0.5, "cm"))
-
-ht1 = netAnalysis_signalingRole_heatmap(object.list[[i]], pattern = "incoming", signaling = pathway.union, title = names(object.list)[i], width = 9, height = 13, color.heatmap = "GnBu")
-ht2 = netAnalysis_signalingRole_heatmap(object.list[[i+1]], pattern = "incoming", signaling = pathway.union, title = names(object.list)[i+1], width = 9, height = 13, color.heatmap = "GnBu")
-draw(ht1 + ht2, ht_gap = unit(0.5, "cm"))
-
-
-ht1 = netAnalysis_signalingRole_heatmap(object.list[[i]], pattern = "all", signaling = pathway.union, title = names(object.list)[i], width = 9, height = 15, color.heatmap = "OrRd")
-ht2 = netAnalysis_signalingRole_heatmap(object.list[[i+1]], pattern = "all", signaling = pathway.union, title = names(object.list)[i+1], width = 9, height = 15, color.heatmap = "OrRd")
-draw(ht1 + ht2, ht_gap = unit(0.5, "cm"))
-
-
-#Part III: Identify the upgulated and down-regulated signaling ligand-receptor pairs
-
-
-levels(cellchat@idents$joint)
-#[1] "Endothelial"      "Myeloid"          "Ependymal"        "Cycling"          "Pericytes"        "Astrocytes"      
-#[7] "Lymphocytes"      "Oligodendrocytes" "OPCs"             "Tumor"    
-
-
-#The increased signaling means these signaling have higher communication probability (strength) in one dataset compared to the other dataset.
-##myeloid vs others
-netVisual_bubble(cellchat, sources.use = 2, targets.use = c(1,3,4,5,6,7,8,9,10),  comparison = c(1, 2), angle.x = 90)
-
-##tumor vs others
-netVisual_bubble(cellchat, sources.use = 10, targets.use = c(1,2,3,4,5,6,7,8,9),  comparison = c(1, 2), angle.x = 90)
-
-##myeloid vs others
-gg1 <- netVisual_bubble(cellchat, sources.use = 2, targets.use =  c(1,3,4,5,6,7,8,9,10),  comparison = c(1, 2), max.dataset = 2, title.name = "Increased signaling in TMZ", angle.x = 90, remove.isolate = F)
-#> Comparing communications on a merged object
-gg2 <- netVisual_bubble(cellchat, sources.use = 2, targets.use =  c(1,3,4,5,6,7,8,9,10),  comparison = c(1, 2), max.dataset = 1, title.name = "Decreased signaling in TMZ", angle.x = 90, remove.isolate = F)
-#> Comparing communications on a merged object
-gg1 + gg2
-
-##tumor vs others
-gg1 <- netVisual_bubble(cellchat, sources.use = 10, targets.use =  c(1,2,3,4,5,6,7,8,9),  comparison = c(1, 2), max.dataset = 2, title.name = "Increased signaling in TMZ", angle.x = 90, remove.isolate = F)
-#> Comparing communications on a merged object
-gg2 <- netVisual_bubble(cellchat, sources.use = 10, targets.use =  c(1,2,3,4,5,6,7,8,9),  comparison = c(1, 2), max.dataset = 1, title.name = "Decreased signaling in TMZ", angle.x = 90, remove.isolate = F)
-#> Comparing communications on a merged object
-gg1 + gg2
-
-#Identify dysfunctional signaling by using differential expression analysis
-
-pos.dataset = "TMZ"
-
-# define a char name used for storing the results of differential expression analysis
-features.name = pos.dataset
-
-# perform differential expression analysis
-cellchat <- identifyOverExpressedGenes(cellchat, group.dataset = "datasets", pos.dataset = pos.dataset, features.name = features.name, only.pos = FALSE, thresh.pc = 0.1, thresh.fc = 0.1, thresh.p = 1)
-
-# Use the joint cell labels from the merged CellChat object
-net <- netMappingDEG(cellchat, features.name = features.name)
-
-# extract the ligand-receptor pairs with upregulated ligands in LS
-net.up <- subsetCommunication(cellchat, net = net, datasets = "TMZ",ligand.logFC = 0.2, receptor.logFC = NULL)
-
-# extract the ligand-receptor pairs with upregulated ligands and upregulated recetptors in NL, i.e.,downregulated in LS
-net.down <- subsetCommunication(cellchat, net = net, datasets = "CTR",ligand.logFC = -0.1, receptor.logFC = -0.1)
-
-gene.up <- extractGeneSubsetFromPair(net.up, cellchat)
-gene.down <- extractGeneSubsetFromPair(net.down, cellchat)
-
-
-##myeloid vs others
-pairLR.use.up = net.up[, "interaction_name", drop = F]
-gg1 <- netVisual_bubble(cellchat, pairLR.use = pairLR.use.up, sources.use = 2, targets.use =  c(1,3,4,5,6,7,8,9,10), comparison = c(1, 2),  angle.x = 90, remove.isolate = F, title.name = paste0("Up-regulated signaling in ", names(object.list)[2]))
-
-#> Comparing communications on a merged object
-pairLR.use.down = net.down[, "interaction_name", drop = F]
-gg2 <- netVisual_bubble(cellchat, pairLR.use = pairLR.use.down, sources.use = 2, targets.use =  c(1,3,4,5,6,7,8,9,10), comparison = c(1, 2),  angle.x = 90, remove.isolate = F, title.name = paste0("Down-regulated signaling in ", names(object.list)[2]))
-
-#> Comparing communications on a merged object
-gg1 + gg2
-
-
-##tumor vs others
-pairLR.use.up = net.up[, "interaction_name", drop = F]
-gg1 <- netVisual_bubble(cellchat, pairLR.use = pairLR.use.up, sources.use = 10, targets.use =  c(1,2,3,4,5,6,7,8,9), comparison = c(1, 2),  angle.x = 90, remove.isolate = F,title.name = paste0("Up-regulated signaling in ", names(object.list)[2]))
-
-#> Comparing communications on a merged object
-pairLR.use.down = net.down[, "interaction_name", drop = F]
-gg2 <- netVisual_bubble(cellchat, pairLR.use = pairLR.use.down, sources.use = 10, targets.use =  c(1,2,3,4,5,6,7,8,9), comparison = c(1, 2),  angle.x = 90, remove.isolate = F,title.name = paste0("Down-regulated signaling in ", names(object.list)[2]))
-
-#> Comparing communications on a merged object
-gg1 + gg2
-
-#Chord diagram
-par(mfrow = c(1,2), xpd=TRUE)
-netVisual_chord_gene(object.list[[2]], sources.use = 10, targets.use =  c(1,2,4,3,5,6,7,8,9), slot.name = 'net', net = net.up, lab.cex = 0.8, small.gap = 3.5, title.name = paste0("Up-regulated signaling in ", names(object.list)[2]))
-netVisual_chord_gene(object.list[[1]], sources.use = 10, targets.use =  c(1,2,4,3,5,6,7,8,9), slot.name = 'net', net = net.down, lab.cex = 0.8, small.gap = 3.5, title.name = paste0("Down-regulated signaling in ", names(object.list)[2]))
-
-
-pathways.show <- c("GAS")
-
-par(mfrow = c(1,2), xpd=TRUE)
-ht <- list()
-for (i in 1:length(object.list)) {
-  ht[[i]] <- netVisual_heatmap(object.list[[i]], signaling = pathways.show, color.heatmap = "Reds",title.name = paste(pathways.show, "signaling ",names(object.list)[i]))
-}
-
-
-#> Do heatmap based on a single object
-ComplexHeatmap::draw(ht[[1]] + ht[[2]], ht_gap = unit(0.5, "cm"))
-
-par(mfrow = c(1,2), xpd=TRUE)
-
-ht <- list()
-for (i in 1:length(object.list)) {
-  ht[[i]] <- netAnalysis_contribution(object.list[[i]], signaling = pathways.show, title = paste("Contribution of L-R pair to",pathways.show, "signaling -",names(object.list)[i]))
-}
-ht[[1]] + ht[[2]]
-
-weight.max <- getMaxWeight(object.list, slot.name = c("netP"), attribute = pathways.show) # control the edge weights across different datasets
-par(mfrow = c(1,2), xpd=TRUE)
-
-for (i in 1:length(object.list)) {
-  netVisual_aggregate(object.list[[i]], signaling = pathways.show, layout = "circle", edge.weight.max = weight.max[1], edge.width.max = 10, signaling.name = paste(pathways.show, names(object.list)[i]))
-}
 
 
 
