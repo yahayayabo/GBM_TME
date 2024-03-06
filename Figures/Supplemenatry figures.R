@@ -196,9 +196,190 @@ criteria_two
 #feature plot
 FeaturePlot(PDOX_GL261_TME, features = c("Mki67","Top2a"))
 
-#Fig.S2E
+#Fig.S2E and S2F
 
-#Fig.S2F
+library(Seurat)
+library(UCell)
+library(R.filesets)
+library(dplyr)
+library(ggplot2)
+
+srt_final <- loadRDS("~/path/srt_final.rds")
+marker.genes <- as.data.frame(readxl::read_xlsx("~/path/Yahaya_Marker_Genes_From_Paper_June2023.xlsx"))
+colnames(marker.genes) <- c("Astrocytes", "Endothelial", "Ependymal", "Myeloid", "Oligodendrocytes", "OPCs", "Pericytes")
+
+## extracting cycling cells as a separate seurat obj
+cycling.object = srt_final[, srt_final@meta.data$merged_celltypes == "Cycling"]
+
+
+cell.types <- lapply(colnames(marker.genes), function(x){
+  
+  tmp <- is.na(marker.genes[, x])
+  tmp <- marker.genes[, x][!tmp]
+  return(tmp)
+
+})
+names(cell.types) <- colnames(marker.genes)
+
+
+cycling.object <- AddModuleScore_UCell(cycling.object, 
+                                       features = cell.types, 
+                                       assay = "RNA")
+
+## getting UCELL cell type columns to a separate df
+ucell.cell.types.df <- cycling.object@meta.data[,13:19]
+colnames(ucell.cell.types.df) <- colnames(marker.genes)
+
+## without scaling
+pheatmap::pheatmap(ucell.cell.types.df, 
+                   angle_col = "45", 
+                   show_rownames = F, 
+                   main = "Cycling cluster cells scored by other cell type signatures",
+                   scale = "none")
+
+
+## scores are scaled
+pheatmap::pheatmap(ucell.cell.types.df, 
+                   angle_col = "45", 
+                   show_rownames = F, 
+                   main = "Cycling cluster cells scored by other cell type signatures",
+                   scale = "row",
+                   color = colorRampPalette(rev(RColorBrewer::brewer.pal(n = 7, name = "RdYlBu")))(100))
+
+## assinging the cell type with max UCELL score to each single cell
+new.cell.types.assigned <- colnames(ucell.cell.types.df)[apply(ucell.cell.types.df, 1, function(x) which.max(x))]
+
+##
+cycling.object@meta.data$new.celtype <- new.cell.types.assigned
+cycling.object@meta.data$new.celtype <- factor(cycling.object@meta.data$new.celtype, 
+                                               levels = c("Astrocytes", 
+                                                          "Myeloid", 
+                                                          "Endothelial", 
+                                                          "OPCs", 
+                                                          "Oligodendrocytes", 
+                                                          "Ependymal", 
+                                                          "Pericytes"))
+
+srt_final@meta.data$new.celltype <- srt_final@meta.data$merged_celltypes
+srt_final@meta.data$new.celltype[srt_final@meta.data$merged_celltypes == "Cycling"] <- as.character(cycling.object@meta.data$new.celtype)
+
+
+Idents(cycling.object) <- cycling.object@meta.data$new.celtype
+
+
+tmp.2 <- tibble(
+  cell_type = Idents(cycling.object)
+  ) %>%
+  group_by(cell_type) %>%
+  count() %>%
+  mutate(
+    percent=(100*n)/sum(n)
+  )
+
+tmp.2$percent <- round(tmp.2$n/sum(tmp.2$n)*100,1)
+tmp.2 <- tmp.2[order(-tmp.2$percent),]
+
+
+xlsx::write.xlsx(as.data.frame(tmp.2), 
+                 "~/myData/projects/Yahaya_project/For_Yahayas_Paper/Yahaya_Cycling_Subcelltypes_numbers_and_percentages_June2023.xlsx")
+
+
+my_cols <- c('3'='#F68282','15'='#31C53F','5'='#1FA195','1'='#B95FBB','13'='#D4D915',
+             '14'='#28CECA','9'='#ff9a36','8'='#2FF18B','11'='#aeadb3','6'='#faf4cf',
+             '2'='#CCB1F1','12'='#25aff5','7'='#A4DFF2','4'='#4B4BF7','16'='#AC8F14',
+             '10'='#E6C122')
+
+my_cols.all <- c('Astrocytes'='#F68282',
+             'Myeloid'='#E6C122', 
+             'Endothelial'='#4B4BF7',
+             'OPCs'='#A4DFF2',
+             'Oligodendrocytes'='#CCB1F1', 
+             'Cycling'='#25aff5', 
+             'Ependymal'='#31C53F',
+             'Pericytes'='#aeadb3',
+             'Lymphocytes'='#D4D915')
+
+my_cols.cycling <- c('Astrocytes'='#F68282',
+             'Myeloid'='#E6C122', 
+             'Endothelial'='#4B4BF7',
+             'OPCs'='#A4DFF2',
+             'Oligodendrocytes'='#CCB1F1', 
+             'Cycling'='#25aff5', 
+             'Ependymal'='#31C53F',
+             'Pericytes'='#aeadb3')
+
+yahaya.cols = c('Astrocytes' = '#bd0026', 
+                'Myeloid' = '#006d2c', 
+                'Endothelial' = '#bf812d',
+                'OPCs' = '#a6cee3',
+                'Oligodendrocytes' = '#1f78b4',
+                'Cycling' = '#1a1a1a',
+                'Ependymal' = '#fdcc0d',
+                'Pericytes' = '#e3f376', 
+                'Lymphocytes' = '#7aff33')
+
+yahaya.cols.cycling = c('Astrocytes' = '#bd0026', 
+                'Myeloid' = '#006d2c', 
+                'Endothelial' = '#bf812d',
+                'OPCs' = '#a6cee3',
+                'Oligodendrocytes' = '#1f78b4',
+                'Cycling' = '#1a1a1a',
+                'Ependymal' = '#fdcc0d',
+                'Pericytes' = '#e3f376')
+
+Idents(srt_final) <- srt_final@meta.data$merged_celltypes
+p1 <- DimPlot(srt_final, cols = yahaya.cols, order = T) + 
+        ggtitle("Original UMAP") +
+        theme(plot.title = element_text(hjust = 0.5, size = 18))
+p2 <- DimPlot(cycling.object, cols = yahaya.cols.cycling, order = tmp.2, pt.size = 1.2) + 
+        ggtitle("Subclustering of Cycling cells") + 
+        theme(plot.title = element_text(hjust = 0.5, size = 18))
+
+Idents(srt_final) <- srt_final@meta.data$new.celltype
+p3 <- DimPlot(srt_final, cols = yahaya.cols, group.by = "new.celltype", order = T) + 
+        ggtitle("Updated UMAP") +
+        theme(plot.title = element_text(hjust = 0.5, size = 18))
+
+
+
+
+
+p4 <- ggplot(tmp.2, 
+             aes(x="",
+                 y=percent, 
+                 fill=cell_type)) +
+        geom_bar(width=1, 
+                 stat = "identity") +
+        coord_polar("y") +
+        scale_fill_manual(values = yahaya.cols.cycling) +  
+        geom_text(aes(label = percent),
+                  size = 9,
+                  position = position_stack(vjust = 0.5)) +
+        theme_classic() +
+        theme(
+              axis.text.x=element_blank(),
+              plot.title = element_text(vjust = 0.5, 
+                                        size = 18, 
+                                        face = "bold"),
+              axis.line = element_blank(),
+              axis.ticks = element_blank(),
+              text = element_text(size = 20),
+              legend.title = element_text(colour = "white")) +
+        labs(fill = "cell_type", 
+             x = NULL, 
+             y = NULL,
+             title = "Cellular subtypes of Cycling cluster")
+        
+
+
+p5 <- patchwork::wrap_plots(list(p1, p3, p2, p4), ncol = 2)
+ggsave("/path/image.png", 
+       width = 20, 
+       height = 16, 
+       dpi = 150, 
+       plot = p5)
+
+
 
 
 ### Supplementary figure 3
