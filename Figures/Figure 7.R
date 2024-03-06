@@ -1,5 +1,5 @@
 
-####  Figure 6  #####
+####  Figure 7  #####
 
 library(Seurat)
 library(BiocParallel)
@@ -13,6 +13,8 @@ library(dplyr)
 library(CellChat)
 
 
+
+### Fig 7C
 # load P3 CTR and TMZ treated tumor cells
 
 P3_CTR_TMZ_tumor <- readRDS("~/P3_CTR_TMZ_tumor.rds")
@@ -21,7 +23,7 @@ DimPlot(P3_CTR_TMZ_tumor, group.by =  "orig.ident", pt.size = 1,  cols = c("P3CT
 
 
 
-#6f
+###Fig 7f
 
 # reference mapping to add P3TMZ to the myeloid subset
 
@@ -64,14 +66,14 @@ dittoBarPlot(P3.merged,"New_names", group.by = "sample",
   theme(text = element_text(size = 16))
 
 
-#6g
+### Fig 7G
 
 DotPlot(P3.merged, features = c("APCs_score", "Phagocytosis_score", "Sensome_score", "Migration_score"), col.min = -2,
         col.max = 2, split.by = "sample", group.by = "Clusters", scale = TRUE, dot.scale = 10, cols = c("#3182bd","red")) +   
   RotatedAxis()+coord_flip()
 
 
-#6h, i, j and k
+#Fig 7H, I, J and K
 
 # this analysis was done following the CellChat vignette with some modifications https://htmlpreview.github.io/?https://github.com/sqjin/CellChat/blob/master/tutorial/Comparison_analysis_of_multiple_datasets.html
 
